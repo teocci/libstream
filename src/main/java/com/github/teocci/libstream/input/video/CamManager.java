@@ -511,9 +511,11 @@ public class CamManager implements Camera.PreviewCallback
         } else {
             previews = previewSizeFront;
         }
-        for (Camera.Size size : previews) {
-            if (size.width == quality.width && size.height == quality.height) {
-                return true;
+        if (previews != null) {
+            for (Camera.Size size : previews) {
+                if (size.width == quality.width && size.height == quality.height) {
+                    return true;
+                }
             }
         }
         return false;

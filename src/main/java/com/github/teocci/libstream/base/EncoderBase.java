@@ -36,6 +36,7 @@ import com.github.teocci.libstream.view.OpenGlView;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK;
@@ -162,6 +163,12 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         audioFormat = mediaFormat;
     }
 
+
+    public boolean prepareVideo(VideoQuality quality)
+    {
+        return prepareVideo(quality, false, 0);
+    }
+
     public boolean prepareVideo(VideoQuality quality, boolean hardwareRotation, int rotation)
     {
         LogHelper.e(TAG, "prepareVideo called");
@@ -199,17 +206,22 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         }
     }
 
+    public boolean prepareAudio(AudioQuality quality)
+    {
+        return prepareAudio(quality, true, true);
+    }
+
     public boolean prepareAudio(AudioQuality quality, boolean echoCanceler, boolean noiseSuppressor)
     {
         LogHelper.e(TAG, quality);
-        micManager.configMic(quality.sampleRate, quality.channel, echoCanceler, noiseSuppressor);
+        micManager.config(quality.sampleRate, quality.channel, echoCanceler, noiseSuppressor);
         prepareAudioRtp(quality);
         return audioEncoder.prepare(quality);
     }
 
     public boolean prepareAudio()
     {
-        micManager.configMic();
+        micManager.config();
         return audioEncoder.prepare();
     }
 
@@ -394,6 +406,25 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         }
 
         return resolutions;
+    }
+
+    public int getBackCamResolutionIndex(int width, int height)
+    {
+        int index = 0;
+
+        List<Camera.Size> sizes = camManager.getPreviewSizeBack();
+        if (sizes == null) return -1;
+
+        LogHelper.e(TAG, "Arr: " + Arrays.toString(sizes.toArray()));
+
+        for (Camera.Size size : sizes) {
+            if (size.width == width && size.height == height) {
+                return index;
+            }
+            index++;
+        }
+
+        return -1;
     }
 
     public void disableAudio()

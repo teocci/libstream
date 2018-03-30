@@ -46,7 +46,13 @@ public interface DirectEncoder
 
     Camera.Size getBackCamResolution(int index);
 
-    List<String> getBackCamResolutionsString();
+    List<String> getBackCamResolutionList();
+
+    int getBackCamResolutionIndex(int width, int height);
+
+    boolean prepareAudio(AudioQuality quality);
+
+    boolean prepareVideo(VideoQuality quality);
 
     boolean prepareAudio(AudioQuality quality, boolean echoCanceler, boolean noiseSuppressor);
 

@@ -154,7 +154,7 @@ public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker,
 
     public boolean prepareAudio(AudioQuality quality, boolean echoCanceler, boolean noiseSuppressor)
     {
-        micManager.configMic(quality.sampleRate, quality.channel, echoCanceler, noiseSuppressor);
+        micManager.config(quality.sampleRate, quality.channel, echoCanceler, noiseSuppressor);
         prepareAudioRtp(quality);
         return audioEncoder.prepare(quality);
     }
@@ -166,7 +166,7 @@ public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker,
 
     public boolean prepareAudio()
     {
-        micManager.configMic();
+        micManager.config();
         return audioEncoder.prepare();
     }
 

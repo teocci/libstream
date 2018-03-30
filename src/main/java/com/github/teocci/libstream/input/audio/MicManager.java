@@ -52,9 +52,9 @@ public class MicManager
     /**
      * Create audio record
      */
-    public void configMic()
+    public void config()
     {
-        configMic(quality.sampleRate, quality.channel, false, false);
+        config(quality.sampleRate, quality.channel, false, false);
         String chl = quality.channel == STEREO ? "Stereo" : "Mono";
         LogHelper.i(TAG, "Microphone created, " + quality.sampleRate + "hz, " + chl);
     }
@@ -62,7 +62,7 @@ public class MicManager
     /**
      * Create audio record with params
      */
-    public void configMic(int sampleRate, int channel, boolean echoCanceler, boolean noiseSuppressor)
+    public void config(int sampleRate, int channel, boolean echoCanceler, boolean noiseSuppressor)
     {
         quality.sampleRate = sampleRate;
         quality.channel = channel;
@@ -115,7 +115,7 @@ public class MicManager
             LogHelper.i(TAG, "Microphone started");
         } else {
             LogHelper.e(TAG, "Error starting, microphone was stopped or not created, "
-                    + "use configMic() before start()");
+                    + "use config() before start()");
         }
     }
 
