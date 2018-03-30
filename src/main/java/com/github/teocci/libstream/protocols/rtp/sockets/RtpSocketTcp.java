@@ -6,6 +6,7 @@ import com.github.teocci.libstream.interfaces.ConnectCheckerRtsp;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.SocketException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,6 +50,7 @@ public class RtpSocketTcp extends BaseRtpSocket implements Runnable
             }
         } catch (IOException | InterruptedException e) {
             LogHelper.e(TAG, "TCP send error: ", e);
+
             connectCheckerRtsp.onConnectionFailedRtsp("Error send packet, " + e.getMessage());
         }
 

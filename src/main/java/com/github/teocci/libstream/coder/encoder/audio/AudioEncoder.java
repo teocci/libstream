@@ -163,28 +163,32 @@ public class AudioEncoder implements MicSinker
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void encodeDataAPI21(byte[] data, int size)
     {
-        int inBufferIndex = audioEncoder.dequeueInputBuffer(-1);
-        if (inBufferIndex >= 0) {
-            ByteBuffer bb = audioEncoder.getInputBuffer(inBufferIndex);
-            if (bb != null) {
-                bb.put(data, 0, size);
+        try {
+            int inBufferIndex = audioEncoder.dequeueInputBuffer(-1);
+            if (inBufferIndex >= 0) {
+                ByteBuffer bb = audioEncoder.getInputBuffer(inBufferIndex);
+                if (bb != null) {
+                    bb.put(data, 0, size);
+                }
+                long pts = System.nanoTime() / 1000 - presentTimeUs;
+                audioEncoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
             }
-            long pts = System.nanoTime() / 1000 - presentTimeUs;
-            audioEncoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
-        }
 
-        for (; ; ) {
-            int outBufferIndex = audioEncoder.dequeueOutputBuffer(audioInfo, 0);
-            if (outBufferIndex == INFO_OUTPUT_FORMAT_CHANGED) {
-                aacSinker.onAudioFormat(audioEncoder.getOutputFormat());
-            } else if (outBufferIndex >= 0) {
-                // This ByteBuffer is AAC
-                ByteBuffer bb = audioEncoder.getOutputBuffer(outBufferIndex);
-                aacSinker.onAACData(bb, audioInfo);
-                audioEncoder.releaseOutputBuffer(outBufferIndex, false);
-            } else {
-                break;
+            for (; ; ) {
+                int outBufferIndex = audioEncoder.dequeueOutputBuffer(audioInfo, 0);
+                if (outBufferIndex == INFO_OUTPUT_FORMAT_CHANGED) {
+                    aacSinker.onAudioFormat(audioEncoder.getOutputFormat());
+                } else if (outBufferIndex >= 0) {
+                    // This ByteBuffer is AAC
+                    ByteBuffer bb = audioEncoder.getOutputBuffer(outBufferIndex);
+                    aacSinker.onAACData(bb, audioInfo);
+                    audioEncoder.releaseOutputBuffer(outBufferIndex, false);
+                } else {
+                    break;
+                }
             }
+        } catch (IllegalStateException ie) {
+            ie.printStackTrace();
         }
     }
 
