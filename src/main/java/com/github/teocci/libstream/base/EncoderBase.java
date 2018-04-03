@@ -456,6 +456,16 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         }
     }
 
+    public void handleZoom(int newZoom)
+    {
+        camManager.handleZoom(newZoom);
+    }
+
+    public void setZoom(int newZoom)
+    {
+        camManager.setZoom(newZoom);
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     public void setGifStreamObject(GifStreamObject gifStreamObject) throws RuntimeException
     {

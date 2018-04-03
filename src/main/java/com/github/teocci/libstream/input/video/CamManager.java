@@ -77,6 +77,7 @@ public class CamManager implements Camera.PreviewCallback
 //    private int fps = 30;
     private VideoQuality quality = VideoQuality.DEFAULT;
 
+    private int currentZoom;
     private int orientation = 0;
     private int imageFormat = ImageFormat.NV21;
 
@@ -234,6 +235,41 @@ public class CamManager implements Camera.PreviewCallback
             }
             LogHelper.e(TAG, "end handler");
         });
+    }
+
+    public void setZoom(int newZoom)
+    {
+        int zoom = 0;
+        if (newZoom > currentZoom) {
+            // zoom in
+            zoom = 1;
+        } else if (newZoom < currentZoom) {
+            // zoom out
+            zoom = -1;
+        }
+        currentZoom = newZoom;
+        handleZoom(zoom);
+    }
+
+    public void handleZoom(int newZoom)
+    {
+        if (camera != null && running) {
+            Camera.Parameters parameters = camera.getParameters();
+            int maxZoom = parameters.getMaxZoom();
+            int zoom = parameters.getZoom();
+            if (newZoom > 0) {
+                // zoom in
+                if (zoom < maxZoom)
+                    zoom++;
+            } else if (newZoom < 0) {
+                // zoom out
+                if (zoom > 0)
+                    zoom--;
+            }
+
+            parameters.setZoom(zoom);
+            camera.setParameters(parameters);
+        }
     }
 
     public void setPreviewOrientation(final int orientation)

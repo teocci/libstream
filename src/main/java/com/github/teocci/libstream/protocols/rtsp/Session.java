@@ -987,4 +987,9 @@ public class Session
     {
         return protocol == TCP;
     }
+
+    public void setZoom(int newZoom)
+    {
+
+    }
 }
