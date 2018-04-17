@@ -21,6 +21,11 @@ public abstract class DirectEncoderBase extends EncoderBase
 {
     private static String TAG = LogHelper.makeLogTag(DirectEncoderBase.class);
 
+    public DirectEncoderBase()
+    {
+        super();
+    }
+
     public DirectEncoderBase(SurfaceView surfaceView)
     {
         super(surfaceView);

@@ -79,14 +79,19 @@ public class WorkerThread extends Thread implements Runnable
 
         this.outputStream = client.getOutputStream();
         this.inputStream = new BufferedReader(new InputStreamReader(client.getInputStream()));
+
         this.session = new Session();
         this.session.setProtocol(rtspServer.getProtocol());
         this.session.setConnectCheckerRtsp(rtspServer.getConnectCheckerRtsp());
         this.session.setOutputStream(client.getOutputStream());
         this.session.setSampleRate(rtspServer.getSampleRate());
         this.session.setChannel(rtspServer.getChannel());
-        this.session.setPSPair(rtspServer.sps, rtspServer.pps);
-        this.session.setVideoPorts(5000 + (int) (Math.random() * 1000));
+
+        if (session.sps != null && session.pps != null) {
+            this.session.setPSPair(rtspServer.sps, rtspServer.pps);
+            this.session.setVideoPorts(5000 + (int) (Math.random() * 1000));
+        }
+
         this.session.setAudioPorts(6000 + (int) (Math.random() * 1000));
 
         this.rtspServer.setCurrentSession(session);
@@ -99,8 +104,8 @@ public class WorkerThread extends Thread implements Runnable
 
         boolean isTCP = session.isTCP();
 
-        session.h264Packet = new H264Packet(session, isTCP);
         if (session.sps != null && session.pps != null) {
+            session.h264Packet = new H264Packet(session, isTCP);
             session.h264Packet.setPSPair(session.sps, session.pps);
         }
 
@@ -171,10 +176,10 @@ public class WorkerThread extends Thread implements Runnable
         Response response = new Response(request);
         String requestAttributes;
 
-        if (rtspServer.sps == null && rtspServer.pps == null)  {
-            LogHelper.e(TAG, "SPS and PPS not setup.");
-            response.status = STATUS_INTERNAL_SERVER_ERROR;
-        }
+//        if (rtspServer.sps == null && rtspServer.pps == null)  {
+//            LogHelper.e(TAG, "SPS and PPS not setup.");
+//            response.status = STATUS_INTERNAL_SERVER_ERROR;
+//        }
 
         // Ask for authorization unless this is an OPTIONS request
         if (!isAuthorized(request) && request.method != OPTIONS) {

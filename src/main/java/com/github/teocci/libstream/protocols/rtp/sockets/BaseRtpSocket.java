@@ -1,5 +1,7 @@
 package com.github.teocci.libstream.protocols.rtp.sockets;
 
+import com.github.teocci.libstream.utils.AverageBitrate;
+
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
 
@@ -31,6 +33,8 @@ public abstract class BaseRtpSocket implements Runnable
     protected int seq = 0;
     protected int bufferCount, bufferIn;
 
+    protected AverageBitrate averageBitrate;
+
     /**
      * This RTP socket implements a buffering mechanism relying on a FIFO of buffers and a Thread.
      */
@@ -38,6 +42,8 @@ public abstract class BaseRtpSocket implements Runnable
     {
         bufferCount = 300;
         buffers = new byte[bufferCount][];
+        averageBitrate = new AverageBitrate();
+
         resetFifo();
 
         //   0               1               2               3
@@ -75,6 +81,7 @@ public abstract class BaseRtpSocket implements Runnable
         timestamps = new long[bufferCount];
         bufferRequested = new Semaphore(bufferCount);
         bufferCommitted = new Semaphore(0);
+        averageBitrate.reset();
     }
 
     /**
@@ -106,8 +113,7 @@ public abstract class BaseRtpSocket implements Runnable
         try {
             buffers[bufferIn][1] &= 0x7F;
             return buffers[bufferIn];
-        }
-        finally {
+        } finally {
             bufferRequested.release();
         }
     }
@@ -165,6 +171,7 @@ public abstract class BaseRtpSocket implements Runnable
     {
         increaseSeq();
         commitLength(length);
+        averageBitrate.push(length);
         if (++bufferIn >= bufferCount) bufferIn = 0;
         bufferCommitted.release();
         if (thread == null) {
@@ -190,10 +197,10 @@ public abstract class BaseRtpSocket implements Runnable
     /**
      * Sets a long into a buffer.
      *
-     * @param buffer    The buffer into which the long value is to be written.
-     * @param n         The value to be inserted.
-     * @param begin     The begin byte.
-     * @param end       The end byte.
+     * @param buffer The buffer into which the long value is to be written.
+     * @param n      The value to be inserted.
+     * @param begin  The begin byte.
+     * @param end    The end byte.
      **/
     protected void setLong(byte[] buffer, long n, int begin, int end)
     {
@@ -201,6 +208,15 @@ public abstract class BaseRtpSocket implements Runnable
             buffer[end] = (byte) (n % 256);
             n >>= 8;
         }
+    }
+
+
+    /**
+     * Returns an approximation of the bitrate of the RTP stream in bits per second.
+     */
+    public long getBitrate()
+    {
+        return averageBitrate.average();
     }
 
     /**

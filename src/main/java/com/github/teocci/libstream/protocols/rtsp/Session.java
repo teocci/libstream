@@ -158,21 +158,16 @@ public class Session
         this.origin = "127.0.0.1";
     }
 
-//	/** You probably don't need to use that directly, use the {@link SessionBuilder}. */
-//	void addAudioTrack(AudioStream track) {
+//  void addAudioTrack(AudioStream track) {
 //		removeAudioTrack();
 //		this.audioStream = track;
 //	}
 //
-//	/** You probably don't need to use that directly, use the {@link SessionBuilder}. */
 //	void addVideoTrack(VideoStream track) {
 //		removeVideoTrack();
 //		this.videoStream = track;
 //	}
 
-    /**
-     * You probably don't need to use that directly, use the {@link SessionBuilder}.
-     */
     public void removeAudioTrack()
     {
         if (audioStream != null) {
@@ -181,9 +176,6 @@ public class Session
         }
     }
 
-    /**
-     * You probably don't need to use that directly, use the {@link SessionBuilder}.
-     */
     public void removeVideoTrack()
     {
         if (videoStream != null) {
@@ -300,9 +292,9 @@ public class Session
 //	 * effect next time you call {@link #configure()}.
 //	 * @param quality Quality of the stream
 //	 */
-//	public void setAudioQuality(AudioQuality quality) {
+//	public void setQuality(AudioQuality quality) {
 //		if (audioStream != null) {
-//			audioStream.setAudioQuality(quality);
+//			audioStream.setQuality(quality);
 //		}
 //	}
 //
@@ -348,15 +340,18 @@ public class Session
 //
 //		return sessionDescription.toString();
 //	}
-//
-//	/** Returns an approximation of the bandwidth consumed by the session in bit per second. */
-//	public long getBitrate() {
-//		long sum = 0;
-//		if (audioStream != null) sum += audioStream.getBitrate();
-//		if (videoStream != null) sum += videoStream.getBitrate();
-//
-//		return sum;
-//	}
+
+    /**
+     * Returns an approximation of the bandwidth consumed by the session in bit per second.
+     */
+    public long getBitrate()
+    {
+        long sum = 0;
+        if (aacPacket != null) sum += aacPacket.getBitrate();
+        if (h264Packet != null) sum += h264Packet.getBitrate();
+
+        return sum;
+    }
 
     /**
      * Indicates if a track is currently running.
@@ -682,7 +677,7 @@ public class Session
         handler.getLooper().quit();
     }
 
-//	private void postPreviewStarted() {
+    //	private void postPreviewStarted() {
 //		mainHandler.post(new Runnable() {
 //			@Override
 //			public void run() {
@@ -704,13 +699,14 @@ public class Session
 //		});
 //	}
 //
-	private void postSessionStarted() {
-		mainHandler.post(() -> {
+    private void postSessionStarted()
+    {
+        mainHandler.post(() -> {
             if (sessionCallback != null) {
                 sessionCallback.onSessionStarted();
             }
         });
-	}
+    }
 
     private void postSessionStopped()
     {
@@ -728,12 +724,18 @@ public class Session
 
     public String createDescription()
     {
-        if (sps == null && pps == null) return null;
+        if (sps == null && pps == null && audioQuality == null) return null;
 
-        String sSPS;
-        String sPPS;
-        sSPS = Base64.encodeToString(sps, 0, sps.length, Base64.NO_WRAP);
-        sPPS = Base64.encodeToString(pps, 0, pps.length, Base64.NO_WRAP);
+        String audioBody = audioQuality == null ? "" : AudioEncoder.createBody(trackAudio, getAudioPorts()[0], audioQuality);
+        String videoBody = "";
+        if (sps != null && pps != null) {
+            String sSPS;
+            String sPPS;
+            sSPS = Base64.encodeToString(sps, 0, sps.length, Base64.NO_WRAP);
+            sPPS = Base64.encodeToString(pps, 0, pps.length, Base64.NO_WRAP);
+            videoBody = VideoEncoder.createBody(trackVideo, getVideoPorts()[0], sSPS, sPPS);
+        }
+
         return "v=0\r\n" +
                 "o=- " + timestamp + " " + timestamp + " IN IP4 " + origin + "\r\n" +
                 "s=Unnamed\r\n" +
@@ -741,8 +743,8 @@ public class Session
                 "c=IN IP4 " + destination + "\r\n" +
                 "t=0 0\r\n" + // this means the session is permanent
                 "a=recvonly\r\n" +
-                AudioEncoder.createBody(trackAudio, getAudioPorts()[0], audioQuality) +
-                VideoEncoder.createBody(trackVideo, getVideoPorts()[0], sSPS, sPPS);
+                audioBody +
+                videoBody;
     }
 
     public void setPSPair(ByteBuffer sps, ByteBuffer pps)
@@ -810,7 +812,7 @@ public class Session
 
     public int getSampleRate()
     {
-        return audioQuality.sampleRate;
+        return audioQuality.sampling;
     }
 
     /**
@@ -915,7 +917,7 @@ public class Session
 
     public void setSampleRate(int sampleRate)
     {
-        audioQuality.sampleRate = sampleRate;
+        audioQuality.sampling = sampleRate;
     }
 
     public void setChannel(int channel)
@@ -930,8 +932,8 @@ public class Session
 
     public void updateDestination()
     {
-        aacPacket.updateDestination();
-        h264Packet.updateDestination();
+        if (aacPacket != null) aacPacket.updateDestination();
+        if (h264Packet != null) h264Packet.updateDestination();
         connectCheckerRtsp.onConnectionSuccessRtsp();
     }
 
@@ -986,10 +988,5 @@ public class Session
     public boolean isTCP()
     {
         return protocol == TCP;
-    }
-
-    public void setZoom(int newZoom)
-    {
-
     }
 }

@@ -28,6 +28,13 @@ public class ServerDirectEncoder extends DirectEncoderBase
     private RtspServerBase rtspServer;
     private Session currentSession;
 
+    public ServerDirectEncoder(RtspServerBase rtspServer)
+    {
+        super();
+
+        this.rtspServer = rtspServer;
+    }
+
     public ServerDirectEncoder(RtspServerBase rtspServer, SurfaceView surfaceView)
     {
         super(surfaceView);
@@ -62,7 +69,7 @@ public class ServerDirectEncoder extends DirectEncoderBase
     protected void prepareAudioRtp(AudioQuality audioQuality)
     {
         rtspServer.setChannel(audioQuality.channel);
-        rtspServer.setSampleRate(audioQuality.sampleRate);
+        rtspServer.setSampleRate(audioQuality.sampling);
     }
 
     @Override

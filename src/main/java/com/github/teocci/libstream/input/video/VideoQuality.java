@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * A class that represents the currentQuality of a video stream.
+ * A class that represents the quality of a video stream.
  * It contains the resolution, the fps (in fps) and the bitrate (in bps) of the stream.
  * <p>
  * Created by teocci.
@@ -21,7 +21,7 @@ public class VideoQuality
     private final static String TAG = LogHelper.makeLogTag(VideoQuality.class);
 
     /**
-     * Default video stream currentQuality.
+     * Default video stream quality.
      */
     public final static VideoQuality DEFAULT = new VideoQuality(720, 480, 30, 1200 * 1024);
 
@@ -31,12 +31,23 @@ public class VideoQuality
     public int height = 0;
 
     /**
-     * Represents a currentQuality for a video stream.
+     * Represents a quality for a video stream.
      */
     public VideoQuality() {}
 
     /**
-     * Represents a currentQuality for a video stream.
+     * Represents a quality for a video stream.
+     */
+    public VideoQuality(VideoQuality quality)
+    {
+        this.bitrate = quality.bitrate;
+        this.fps = quality.fps;
+        this.height = quality.height;
+        this.width = quality.width;
+    }
+
+    /**
+     * Represents a quality for a video stream.
      *
      * @param width  The horizontal resolution
      * @param height The vertical resolution
@@ -48,12 +59,12 @@ public class VideoQuality
     }
 
     /**
-     * Represents a currentQuality for a video stream.
+     * Represents a quality for a video stream.
      *
-     * @param width  The horizontal resolution
-     * @param height The vertical resolution
-     * @param fps The fps in frame per seconds
-     * @param bitrate   The bitrate in bit per seconds
+     * @param width   The horizontal resolution
+     * @param height  The vertical resolution
+     * @param fps     The fps in frame per seconds
+     * @param bitrate The bitrate in bit per seconds
      */
     public VideoQuality(int width, int height, int fps, int bitrate)
     {
@@ -63,23 +74,27 @@ public class VideoQuality
         this.height = height;
     }
 
-    public boolean equals(VideoQuality quality)
+    @Override
+    public String toString()
     {
-        if (quality == null) return false;
-        return (quality.width == this.width &&
-                quality.height == this.height &&
-                quality.fps == this.fps &&
-                quality.bitrate == this.bitrate);
+        return "VideoQuality{ " +
+                width + "x" + height + " px, " +
+                fps + " fps, " +
+                bitrate / 1000 + " kbps}";
     }
 
-    public VideoQuality clone()
+    public boolean equals(VideoQuality quality)
     {
-        return new VideoQuality(width, height, fps, bitrate);
+        return quality != null &&
+                quality.width == this.width &&
+                quality.height == this.height &&
+                quality.fps == this.fps &&
+                quality.bitrate == this.bitrate;
     }
 
     public static VideoQuality parseQuality(String str)
     {
-        VideoQuality quality = DEFAULT.clone();
+        VideoQuality quality = new VideoQuality(DEFAULT);
         if (str != null) {
             String[] config = str.split("-");
             try {
@@ -93,18 +108,13 @@ public class VideoQuality
         return quality;
     }
 
-    public String toString()
-    {
-        return width + "x" + height + " px, " + fps + " fps, " + bitrate / 1000 + " kbps";
-    }
-
     /**
      * Checks if the requested resolution is supported by the camera.
      * If not, it modifies it by supported parameters.
      **/
     public static VideoQuality closestSupportedResolution(Camera.Parameters parameters, VideoQuality quality)
     {
-        VideoQuality v = quality.clone();
+        VideoQuality v = new VideoQuality(quality);
         int minDist = Integer.MAX_VALUE;
 
         StringBuilder sb = new StringBuilder("Supported resolutions: ");

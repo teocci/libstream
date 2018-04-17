@@ -64,8 +64,8 @@ public class AudioEncoder implements MicSinker
 
     // default parameters for encoder
 //    private String mime = "audio/mp4a-latm";
-//    private int bitRate = 128 * 1024;  //in kbps
-//    private int sampleRate = 44100; //in hz
+//    private int bitrate = 128 * 1024;  //in kbps
+//    private int sampling = 44100; //in hz
 //    private boolean isStereo = true;
     private AudioQuality quality = AudioQuality.DEFAULT;
 
@@ -76,7 +76,7 @@ public class AudioEncoder implements MicSinker
 
     /**
      * Set custom PCM data.
-     * Use it after prepare(int sampleRate, int channel).
+     * Use it after prepare(int sampling, int channel).
      * Used too with microphone.
      *
      * @param buffer PCM buffer
@@ -94,7 +94,7 @@ public class AudioEncoder implements MicSinker
 
     public void setSampleRate(int sampleRate)
     {
-        quality.sampleRate = sampleRate;
+        quality.sampling = sampleRate;
     }
 
     /**
@@ -102,8 +102,8 @@ public class AudioEncoder implements MicSinker
      */
     public boolean prepare(AudioQuality quality)
     {
-        this.quality.sampleRate = quality.sampleRate;
-        this.quality.bitRate = quality.bitRate;
+        this.quality.sampling = quality.sampling;
+        this.quality.bitrate = quality.bitrate;
         this.quality.channel = quality.channel;
 
         return prepare();
@@ -118,10 +118,10 @@ public class AudioEncoder implements MicSinker
             audioEncoder = MediaCodec.createEncoderByType(quality.mime);
             MediaFormat audioFormat = MediaFormat.createAudioFormat(
                     quality.mime,
-                    quality.sampleRate,
+                    quality.sampling,
                     quality.channel
             );
-            audioFormat.setInteger(KEY_BIT_RATE, quality.bitRate);
+            audioFormat.setInteger(KEY_BIT_RATE, quality.bitrate);
             audioFormat.setInteger(KEY_MAX_INPUT_SIZE, 0);
             audioFormat.setInteger(KEY_AAC_PROFILE, AACObjectLC);
 
@@ -226,7 +226,7 @@ public class AudioEncoder implements MicSinker
         int samplingIndex = -1;
         int index = 0;
         for (int sampleRate : AUDIO_SAMPLING_RATES) {
-            if (sampleRate == quality.sampleRate) {
+            if (sampleRate == quality.sampling) {
                 samplingIndex = index;
                 break;
             }
@@ -241,7 +241,7 @@ public class AudioEncoder implements MicSinker
         // 00010010 00010000 = 1210
         int config = (2 & 0x1F) << 11 | (samplingIndex & 0x0F) << 7 | (quality.channel & 0x0F) << 3;
         return "m=audio " + port + " RTP/AVP " + PAYLOAD_TYPE + "\r\n" +
-                "a=rtpmap:" + PAYLOAD_TYPE + " mpeg4-generic/" + quality.sampleRate + "/" + quality.channel + "\r\n" +
+                "a=rtpmap:" + PAYLOAD_TYPE + " mpeg4-generic/" + quality.sampling + "/" + quality.channel + "\r\n" +
                 "a=fmtp:" + PAYLOAD_TYPE + " streamtype=5; profile-level-id=15; mode=AAC-hbr; " +
                 "config=" + Integer.toHexString(config) + "; SizeLength=13; IndexLength=3; IndexDeltaLength=3;\r\n" +
                 "a=control:trackID=" + trackAudio + "\r\n";

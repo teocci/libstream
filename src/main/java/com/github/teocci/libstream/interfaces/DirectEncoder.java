@@ -18,6 +18,8 @@ import java.util.List;
 
 public interface DirectEncoder
 {
+    void initEncoder();
+
     void setEffect(ColorEffect effect);
 
     void setSurfaceView(SurfaceView surfaceView);
@@ -49,6 +51,8 @@ public interface DirectEncoder
     List<String> getBackCamResolutionList();
 
     int getBackCamResolutionIndex(int width, int height);
+
+    long getBitrate();
 
     boolean prepareAudio(AudioQuality quality);
 

@@ -44,7 +44,7 @@ public class RtspDisplay extends DisplayBase
     protected void prepareAudioRtp(AudioQuality audioQuality)
     {
         rtspClient.setChannel(audioQuality.channel);
-        rtspClient.setSampleRate(audioQuality.sampleRate);
+        rtspClient.setSampleRate(audioQuality.sampling);
     }
 
     @Override

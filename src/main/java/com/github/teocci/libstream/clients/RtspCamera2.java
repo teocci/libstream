@@ -62,7 +62,7 @@ public class RtspCamera2 extends Camera2Base
     protected void prepareAudioRtp(AudioQuality audioQuality)
     {
         rtspClient.setChannel(audioQuality.channel);
-        rtspClient.setSampleRate(audioQuality.sampleRate);
+        rtspClient.setSampleRate(audioQuality.sampling);
     }
 
     @Override

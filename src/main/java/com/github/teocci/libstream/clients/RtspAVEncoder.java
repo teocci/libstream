@@ -56,7 +56,7 @@ public class RtspAVEncoder extends AVEncoderBase
     protected void prepareAudioRtp(AudioQuality audioQuality)
     {
         rtspClient.setChannel(audioQuality.channel);
-        rtspClient.setSampleRate(audioQuality.sampleRate);
+        rtspClient.setSampleRate(audioQuality.sampling);
     }
 
     @Override

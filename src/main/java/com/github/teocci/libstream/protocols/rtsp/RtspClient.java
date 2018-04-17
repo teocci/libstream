@@ -110,7 +110,7 @@ public class RtspClient
 
     public void setSampleRate(int sampleRate)
     {
-        audioQuality.sampleRate = sampleRate;
+        audioQuality.sampling = sampleRate;
     }
 
     public String getHost()
@@ -161,7 +161,7 @@ public class RtspClient
             }
 
             currentSession.aacPacket = new AacPacket(currentSession, isTCP);
-            currentSession.aacPacket.setSampleRate(audioQuality.sampleRate);
+            currentSession.aacPacket.setSampleRate(audioQuality.sampling);
             thread = new Thread(() -> {
                 try {
                     if (!tlsEnabled) {

@@ -1,7 +1,14 @@
 package com.github.teocci.libstream.input.video;
 
+import android.hardware.Camera;
+import android.hardware.Camera.CameraInfo;
+
 import com.github.teocci.libstream.input.media.MediaStream;
 import com.github.teocci.libstream.utils.LogHelper;
+
+import java.io.IOException;
+
+import static android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK;
 
 /**
  * Don't use this class directly.
@@ -14,24 +21,22 @@ public abstract class VideoStream extends MediaStream
 {
     private final static String TAG = LogHelper.makeLogTag(VideoStream.class);
 
-//    protected VideoQuality requestedQuality = VideoQuality.DEFAULT.clone();
-//    protected VideoQuality currentQuality = requestedQuality.clone();
+    protected VideoQuality quality;
 //
 //    protected Callback surfaceHolderCallback = null;
 //    protected SurfaceView surfaceView = null;
 //    protected SharedPreferences settings = null;
-//    protected int videoEncoder, cameraID = 0;
+    protected int videoEncoder, cameraID = 0;
 //    protected int requestedOrientation = 0, orientation = 0;
 //    protected Camera camera;
 //    protected Thread cameraThread;
 //    protected Looper cameraLooper;
-//
-    protected boolean cameraOpenedManually = true;
+
 //    protected boolean flashEnabled = false;
 //    protected boolean surfaceReady = false;
 //    protected boolean unlocked = false;
 //    protected boolean previewStarted = false;
-//    protected boolean updated = false;
+    protected boolean updated = false;
 //
 //    protected String mimeType = "video/avc";
 //    protected String encoderName;
@@ -40,46 +45,45 @@ public abstract class VideoStream extends MediaStream
 //    protected int maxFps = 0;
 //
 //    protected int currentZoom;
-//
-//    /**
-//     * Don't use this class directly.
-//     * Uses CAMERA_FACING_BACK by default.
-//     */
-//    public VideoStream()
-//    {
-//        this(CameraInfo.CAMERA_FACING_BACK);
-//    }
-//
-//    /**
-//     * Don't use this class directly
-//     *
-//     * @param camera Can be either CameraInfo.CAMERA_FACING_BACK or CameraInfo.CAMERA_FACING_FRONT
-//     */
-//    @SuppressLint("InlinedApi")
-//    public VideoStream(int camera)
-//    {
-//        super();
-//        setCamera(camera);
-//    }
-//
-//    /**
-//     * Sets the camera that will be used to capture video.
-//     * You can call this method at any time and changes will take effect next time you start the stream.
-//     *
-//     * @param camera Can be either CameraInfo.CAMERA_FACING_BACK or CameraInfo.CAMERA_FACING_FRONT
-//     */
-//    public void setCamera(int camera)
-//    {
-//        CameraInfo cameraInfo = new CameraInfo();
-//        int numberOfCameras = Camera.getNumberOfCameras();
-//        for (int i = 0; i < numberOfCameras; i++) {
-//            Camera.getCameraInfo(i, cameraInfo);
-//            if (cameraInfo.facing == camera) {
-//                cameraID = i;
-//                break;
-//            }
-//        }
-//    }
+
+    /**
+     * Don't use this class directly.
+     * Uses CAMERA_FACING_BACK by default.
+     */
+    public VideoStream()
+    {
+        this(CAMERA_FACING_BACK);
+    }
+
+    /**
+     * Don't use this class directly
+     *
+     * @param camera Can be either CameraInfo.CAMERA_FACING_BACK or CameraInfo.CAMERA_FACING_FRONT
+     */
+    public VideoStream(int camera)
+    {
+        super();
+        setCamera(camera);
+    }
+
+    /**
+     * Sets the camera that will be used to capture video.
+     * You can call this method at any time and changes will take effect next time you start the stream.
+     *
+     * @param camera Can be either CameraInfo.CAMERA_FACING_BACK or CameraInfo.CAMERA_FACING_FRONT
+     */
+    public void setCamera(int camera)
+    {
+        CameraInfo cameraInfo = new CameraInfo();
+        int numberOfCameras = Camera.getNumberOfCameras();
+        for (int i = 0; i < numberOfCameras; i++) {
+            Camera.getCameraInfo(i, cameraInfo);
+            if (cameraInfo.facing == camera) {
+                cameraID = i;
+                break;
+            }
+        }
+    }
 //
 //    /**
 //     * Switch between the front facing and the back facing camera of the phone.
@@ -261,28 +265,27 @@ public abstract class VideoStream extends MediaStream
 //        updated = false;
 //    }
 //
-//    /**
-//     * Sets the configuration of the stream. You can call this method at any time
-//     * and changes will take effect next time you call {@link #configure()}.
-//     *
-//     * @param videoQuality Quality of the stream
-//     */
-//    public void setVideoQuality(VideoQuality videoQuality)
-//    {
-//        Log.e(TAG, "videoQuality");
-//        if (!requestedQuality.equals(videoQuality)) {
-//            requestedQuality = videoQuality.clone();
-//            updated = false;
-//        }
-//    }
-//
-//    /**
-//     * Returns the currentQuality of the stream.
-//     */
-//    public VideoQuality getVideoQuality()
-//    {
-//        return requestedQuality;
-//    }
+    /**
+     * Sets the configuration of the stream. You can call this method at any time
+     * and changes will take effect next time you call {@link #configure()}.
+     *
+     * @param quality Quality of the stream
+     */
+    public void setQuality(VideoQuality quality)
+    {
+        if (!quality.equals(quality)) {
+            this.quality = quality;
+            updated = false;
+        }
+    }
+
+    /**
+     * Returns the quality of the stream.
+     */
+    public VideoQuality getQuality()
+    {
+        return quality;
+    }
 //
 //    /**
 //     * Some data (SPS and PPS params) needs to be stored when {@link #getSessionDescription()} is called
@@ -293,30 +296,26 @@ public abstract class VideoStream extends MediaStream
 //    {
 //        settings = prefs;
 //    }
-//
-//    /**
-//     * Configures the stream. You need to call this before calling {@link #getSessionDescription()}
-//     * to apply your configuration of the stream.
-//     */
-//    public synchronized void configure() throws IllegalStateException, IOException
-//    {
-//        super.configure();
-//        orientation = requestedOrientation;
-//        currentQuality = requestedQuality;
-//    }
-//
-//    /**
-//     * Starts the stream.
-//     * This will also open the camera and display the preview
-//     * if {@link #startPreview()} has not already been called.
-//     */
-//    public synchronized void start() throws IllegalStateException, IOException
-//    {
-//        if (!previewStarted) cameraOpenedManually = false;
-//        super.start();
-//        Log.d(TAG, "Stream configuration: FPS: " + currentQuality.fps + " Width: " + currentQuality.resWidth + " Height: " + currentQuality.height);
-//    }
-//
+
+    /**
+     * Configures the stream. You need to call this before calling {@link #getSessionDescription()}
+     * to apply your configuration of the stream.
+     */
+    public synchronized void configure() throws IllegalStateException, IOException
+    {
+        super.configure();
+    }
+
+    /**
+     * Starts the stream.
+     * This will also open the camera and display the preview
+     * if {@link #startPreview()} has not already been called.
+     */
+    public synchronized void start() throws IllegalStateException, IOException
+    {
+        super.start();
+    }
+
 //    /**
 //     * Stops the stream.
 //     */
@@ -361,7 +360,6 @@ public abstract class VideoStream extends MediaStream
      */
     public synchronized void stopPreview()
     {
-        cameraOpenedManually = false;
         stop();
     }
 
@@ -390,11 +388,11 @@ public abstract class VideoStream extends MediaStream
 //            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
 //            mediaRecorder.setVideoEncoder(videoEncoder);
 //            mediaRecorder.setPreviewDisplay(surfaceView.getHolder().getSurface());
-//            mediaRecorder.setVideoSize(currentQuality.resWidth, currentQuality.height);
-//            mediaRecorder.setVideoFrameRate(currentQuality.fps);
+//            mediaRecorder.setVideoSize(quality.resWidth, quality.height);
+//            mediaRecorder.setVideoFrameRate(quality.fps);
 //
 //            // The bandwidth actually consumed is often above what was requested
-//            mediaRecorder.setVideoEncodingBitRate((int) (currentQuality.bitrate * 0.8));
+//            mediaRecorder.setVideoEncodingBitRate((int) (quality.bitrate * 0.8));
 //
 //            // We write the output of the camera in a local socket instead of a file !
 //            // This one little trick makes streaming feasible quiet simply: data from the camera
@@ -477,13 +475,13 @@ public abstract class VideoStream extends MediaStream
 //            }
 //        }
 //
-//        EncoderDebugger debugger = EncoderDebugger.debug(settings, currentQuality.resWidth, currentQuality.height);
+//        EncoderDebugger debugger = EncoderDebugger.debug(settings, quality.resWidth, quality.height);
 //        final NV21Convertor convertor = debugger.getNV21Convertor();
 //
 //        mediaCodec = MediaCodec.createByCodecName(debugger.getEncoderName());
-//        MediaFormat mediaFormat = MediaFormat.createVideoFormat(mimeType, currentQuality.resWidth, currentQuality.height);
-//        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, currentQuality.bitrate);
-//        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, currentQuality.fps);
+//        MediaFormat mediaFormat = MediaFormat.createVideoFormat(mimeType, quality.resWidth, quality.height);
+//        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, quality.bitrate);
+//        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, quality.fps);
 //        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, debugger.getEncoderColorFormat());
 //        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
 //        mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -549,12 +547,12 @@ public abstract class VideoStream extends MediaStream
 //        // Estimates the frame rate of the camera
 //        measureFramerate();
 //
-//        EncoderDebugger debugger = EncoderDebugger.debug(settings, currentQuality.resWidth, currentQuality.height);
+//        EncoderDebugger debugger = EncoderDebugger.debug(settings, quality.resWidth, quality.height);
 //
 //        mediaCodec = MediaCodec.createByCodecName(debugger.getEncoderName());
-//        MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", currentQuality.resWidth, currentQuality.height);
-//        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, currentQuality.bitrate);
-//        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, currentQuality.fps);
+//        MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", quality.resWidth, quality.height);
+//        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, quality.bitrate);
+//        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, quality.fps);
 //        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
 //        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
 //        mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -701,15 +699,15 @@ public abstract class VideoStream extends MediaStream
 //        }
 //
 //        Parameters parameters = camera.getParameters();
-//        currentQuality = VideoQuality.closestSupportedResolution(parameters, currentQuality);
-//        Log.e(TAG, "currentQuality: " + currentQuality);
+//        quality = VideoQuality.closestSupportedResolution(parameters, quality);
+//        Log.e(TAG, "quality: " + quality);
 //        int[] max = VideoQuality.maximumSupportedFramerate(parameters);
 //
-//        double ratio = (double) currentQuality.resWidth / (double) currentQuality.height;
+//        double ratio = (double) quality.resWidth / (double) quality.height;
 //        surfaceView.requestAspectRatio(ratio);
 //
 //        parameters.setPreviewFormat(cameraImageFormat);
-//        parameters.setPreviewSize(currentQuality.resWidth, currentQuality.height);
+//        parameters.setPreviewSize(quality.resWidth, quality.height);
 //        parameters.setPreviewFpsRange(max[0], max[1]);
 //
 //        try {
@@ -775,7 +773,7 @@ public abstract class VideoStream extends MediaStream
 //                    count++;
 //                }
 //                if (i > 20) {
-//                    currentQuality.fps = (int) (1000000 / (t / count) + 1);
+//                    quality.fps = (int) (1000000 / (t / count) + 1);
 //                    lock.release();
 //                }
 //                oldNow = now;
@@ -786,10 +784,10 @@ public abstract class VideoStream extends MediaStream
 //
 //        try {
 //            lock.tryAcquire(2, TimeUnit.SECONDS);
-//            Log.d(TAG, "Actual fps: " + currentQuality.fps);
+//            Log.d(TAG, "Actual fps: " + quality.fps);
 //            if (settings != null) {
 //                Editor editor = settings.edit();
-//                editor.putInt(PREF_PREFIX + "fps" + requestedQuality.fps + "," + cameraImageFormat + "," + requestedQuality.resWidth + requestedQuality.height, currentQuality.fps);
+//                editor.putInt(PREF_PREFIX + "fps" + requestedQuality.fps + "," + cameraImageFormat + "," + requestedQuality.resWidth + requestedQuality.height, quality.fps);
 //                editor.commit();
 //            }
 //        } catch (InterruptedException e) {}

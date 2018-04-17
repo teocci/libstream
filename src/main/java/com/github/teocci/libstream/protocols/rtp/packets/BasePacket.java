@@ -27,7 +27,7 @@ public abstract class BasePacket
 
     protected Session session;
 
-    protected volatile boolean streaming = false;
+    protected volatile boolean streaming;
 
     public BasePacket(Session session, boolean tcpProtocol)
     {
@@ -62,6 +62,11 @@ public abstract class BasePacket
         }
 
         return null;
+    }
+
+    public long getBitrate()
+    {
+        return socket.getBitrate();
     }
 
     public void close()

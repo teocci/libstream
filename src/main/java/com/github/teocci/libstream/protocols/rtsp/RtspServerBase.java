@@ -65,7 +65,6 @@ public abstract class RtspServerBase extends Service
     private ConnectCheckerRtsp connectCheckerRtsp;
 
     public Map<Session, Object> sessions = new WeakHashMap<>(2);
-
     private final LinkedList<RtspCallback> listeners = new LinkedList<>();
 
     private RequestWorker listenerThread;
@@ -248,7 +247,7 @@ public abstract class RtspServerBase extends Service
 
     public void setSampleRate(int sampleRate)
     {
-        this.audioQuality.sampleRate = sampleRate;
+        this.audioQuality.sampling = sampleRate;
     }
 
 //    public void setSPSandPPS(ByteBuffer sps, ByteBuffer pps)
@@ -273,7 +272,7 @@ public abstract class RtspServerBase extends Service
         if (currentSession == null) return;
         if (currentSession.aacPacket == null) return;
 
-        if (isStreaming() && isLoaded()) {
+        if (isStreaming() && (isLoaded())) {
             currentSession.aacPacket.createAndSendPacket(aacBuffer, info);
         }
     }
@@ -309,7 +308,7 @@ public abstract class RtspServerBase extends Service
 
     public int getSampleRate()
     {
-        return audioQuality.sampleRate;
+        return audioQuality.sampling;
     }
 
     public int getChannel()
@@ -347,7 +346,7 @@ public abstract class RtspServerBase extends Service
 
     public boolean isLoaded()
     {
-        return loaded;
+        return currentSession.h264Packet == null || loaded;
     }
 
     /**

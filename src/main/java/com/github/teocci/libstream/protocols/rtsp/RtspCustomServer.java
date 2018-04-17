@@ -297,9 +297,9 @@ public class RtspCustomServer extends RtspServerBase
 //        this.audioQuality.channel = channel;
 //    }
 //
-//    public void setSampleRate(int sampleRate)
+//    public void setSampleRate(int sampling)
 //    {
-//        this.audioQuality.sampleRate = sampleRate;
+//        this.audioQuality.sampling = sampling;
 //    }
 //
 //    public void setSPSandPPS(ByteBuffer sps, ByteBuffer pps)
@@ -349,7 +349,7 @@ public class RtspCustomServer extends RtspServerBase
 //
 //    public int getSampleRate()
 //    {
-//        return audioQuality.sampleRate;
+//        return audioQuality.sampling;
 //    }
 //
 //    public int getChannel()

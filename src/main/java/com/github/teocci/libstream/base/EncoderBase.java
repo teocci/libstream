@@ -78,12 +78,20 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
     private boolean canRecord = false;
     private boolean onPreview = false;
 
+    public EncoderBase()
+    {
+        micManager = new MicManager(this);
+        audioEncoder = new AudioEncoder(this);
+        streaming = false;
+    }
+
     public EncoderBase(SurfaceView surfaceView)
     {
         camManager = new CamManager(surfaceView, this);
         videoEncoder = new VideoEncoder(this);
         micManager = new MicManager(this);
         audioEncoder = new AudioEncoder(this);
+
         streaming = false;
     }
 
@@ -92,8 +100,8 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         camManager = new CamManager(textureView, this);
         videoEncoder = new VideoEncoder(this);
         audioEncoder = new AudioEncoder(this);
-
         micManager = new MicManager(this);
+
         streaming = false;
     }
 
@@ -214,7 +222,7 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
     public boolean prepareAudio(AudioQuality quality, boolean echoCanceler, boolean noiseSuppressor)
     {
         LogHelper.e(TAG, quality);
-        micManager.config(quality.sampleRate, quality.channel, echoCanceler, noiseSuppressor);
+        micManager.config(quality.sampling, quality.channel, echoCanceler, noiseSuppressor);
         prepareAudioRtp(quality);
         return audioEncoder.prepare(quality);
     }
@@ -300,7 +308,7 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
             if (openGlView != null && minAPI18()) {
                 openGlView.stopGlThread();
             }
-            camManager.stop();
+            if (camManager != null) camManager.stop();
             onPreview = false;
         } else {
             LogHelper.e(TAG, "Streaming or preview stopped, ignored");
@@ -350,11 +358,11 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
 
     private void startProcessing()
     {
-        videoEncoder.start();
-        audioEncoder.start();
+        if (videoEncoder != null) videoEncoder.start();
+        if (audioEncoder != null) audioEncoder.start();
 
-        camManager.start();
-        micManager.start();
+        if (camManager != null) camManager.start();
+        if (micManager != null) micManager.start();
 
         streaming = true;
         onPreview = true;
@@ -368,10 +376,10 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
 
     private void stopProcessing()
     {
-        micManager.stop();
+        if (micManager != null) micManager.stop();
 
-        videoEncoder.stop();
-        audioEncoder.stop();
+        if (videoEncoder != null) videoEncoder.stop();
+        if (audioEncoder != null) audioEncoder.stop();
 
         if (openGlView != null && minAPI18()) {
             openGlView.stopGlThread();
@@ -644,6 +652,6 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
 
     public boolean isVideoEnabled()
     {
-        return videoEnabled;
+        return videoEncoder != null && videoEnabled;
     }
 }

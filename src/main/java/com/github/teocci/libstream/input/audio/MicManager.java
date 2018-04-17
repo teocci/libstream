@@ -34,7 +34,7 @@ public class MicManager
     private boolean created = false;
 
     // Default parameters for microphone
-//    private int sampleRate = 44100; //hz
+//    private int sampling = 44100; //hz
 //    private int channel = AudioFormat.CHANNEL_IN_STEREO;
     private AudioQuality quality = AudioQuality.DEFAULT;
 
@@ -54,9 +54,9 @@ public class MicManager
      */
     public void config()
     {
-        config(quality.sampleRate, quality.channel, false, false);
+        config(quality.sampling, quality.channel, false, false);
         String chl = quality.channel == STEREO ? "Stereo" : "Mono";
-        LogHelper.i(TAG, "Microphone created, " + quality.sampleRate + "hz, " + chl);
+        LogHelper.i(TAG, "Microphone created, " + quality.sampling + "hz, " + chl);
     }
 
     /**
@@ -64,7 +64,7 @@ public class MicManager
      */
     public void config(int sampleRate, int channel, boolean echoCanceler, boolean noiseSuppressor)
     {
-        quality.sampleRate = sampleRate;
+        quality.sampling = sampleRate;
         quality.channel = channel;
         int channelConfig = channel == STEREO ? CHANNEL_IN_STEREO : CHANNEL_IN_MONO;
 
@@ -178,7 +178,7 @@ public class MicManager
     private int getPCMBufferSize()
     {
         int pcmBufSize = AudioRecord.getMinBufferSize(
-                quality.sampleRate,
+                quality.sampling,
                 quality.channel,
                 AudioFormat.ENCODING_PCM_16BIT
         ) + 8191;
@@ -187,12 +187,12 @@ public class MicManager
 
     public int getSampleRate()
     {
-        return quality.sampleRate;
+        return quality.sampling;
     }
 
     public void setSampleRate(int sampleRate)
     {
-        quality.sampleRate = sampleRate;
+        quality.sampling = sampleRate;
     }
 
     public int getAudioFormat()

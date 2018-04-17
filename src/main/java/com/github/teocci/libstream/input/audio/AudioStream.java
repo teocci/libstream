@@ -5,6 +5,8 @@ import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import com.github.teocci.libstream.input.media.MediaStream;
+import com.github.teocci.libstream.protocols.rtp.packets.AacPacket;
+import com.github.teocci.libstream.protocols.rtp.packets.H264Packet;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -16,34 +18,38 @@ import java.io.InputStream;
 public abstract class AudioStream extends MediaStream
 {
     protected int audioSource;
+
+    // Packet
+    public AacPacket aacPacket;
+
 //    protected int outputFormat;
 //    protected int audioEncoder;
 //    protected AudioQuality requestedQuality = AudioQuality.DEFAULT.clone();
-//    protected AudioQuality quality = requestedQuality.clone();
-//
-//    public AudioStream()
-//    {
-//        setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
-//    }
-//
-//    public void setAudioSource(int audioSource)
-//    {
-//        this.audioSource = audioSource;
-//    }
-//
-//    public void setAudioQuality(AudioQuality quality)
-//    {
-//        this.requestedQuality = quality;
-//    }
-//
-//    /**
-//     * Returns the currentQuality of the stream.
-//     */
-//    public AudioQuality getAudioQuality()
-//    {
-//        return quality;
-//    }
-//
+    protected AudioQuality quality;
+
+    public AudioStream()
+    {
+        setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
+    }
+
+    public void setAudioSource(int audioSource)
+    {
+        this.audioSource = audioSource;
+    }
+
+    public void setQuality(AudioQuality quality)
+    {
+        this.quality = quality;
+    }
+
+    /**
+     * Returns the quality of the stream.
+     */
+    public AudioQuality getQuality()
+    {
+        return quality;
+    }
+
 //    protected void setAudioEncoder(int audioEncoder)
 //    {
 //        this.audioEncoder = audioEncoder;
@@ -61,16 +67,16 @@ public abstract class AudioStream extends MediaStream
 //        createSockets();
 //
 //        Log.v(TAG, "Requested audio with " +
-//                quality.bitRate / 1000 + "kbps" + " at " +
-//                quality.sampleRate / 1000 + "kHz");
+//                quality.bitrate / 1000 + "kbps" + " at " +
+//                quality.sampling / 1000 + "kHz");
 //
 //        mediaRecorder = new MediaRecorder();
 //        mediaRecorder.setAudioSource(audioSource);
 //        mediaRecorder.setOutputFormat(outputFormat);
 //        mediaRecorder.setAudioEncoder(audioEncoder);
 //        mediaRecorder.setAudioChannels(1);
-//        mediaRecorder.setAudioSamplingRate(quality.sampleRate);
-//        mediaRecorder.setAudioEncodingBitRate(quality.bitRate);
+//        mediaRecorder.setAudioSamplingRate(quality.sampling);
+//        mediaRecorder.setAudioEncodingBitRate(quality.bitrate);
 //
 //        // We write the output of the camera in a local socket instead of a file !
 //        // This one little trick makes streaming feasible quiet simply: data from the camera
