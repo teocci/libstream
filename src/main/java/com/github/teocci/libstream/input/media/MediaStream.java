@@ -6,7 +6,6 @@ import com.github.teocci.libstream.input.audio.AudioStream;
 import com.github.teocci.libstream.input.video.VideoQuality;
 import com.github.teocci.libstream.input.video.VideoStream;
 import com.github.teocci.libstream.interfaces.Stream;
-import com.github.teocci.libstream.protocols.rtp.packets.AacPacket;
 import com.github.teocci.libstream.protocols.rtp.packets.BasePacket;
 import com.github.teocci.libstream.protocols.rtp.sockets.BaseRtpSocket;
 
@@ -43,10 +42,7 @@ public abstract class MediaStream implements Stream
 
     private int timeToLive = 64;
 
-    public MediaStream()
-    {
-
-    }
+    public MediaStream() {}
 
     /**
      * Sets the destination IP address of the stream.
@@ -79,6 +75,7 @@ public abstract class MediaStream implements Stream
         }
 
         ports = new int[]{rtpPort, rtcpPort};
+        this.outputStream = null;
     }
 
     /**
@@ -103,6 +100,7 @@ public abstract class MediaStream implements Stream
      */
     public void setOutputStream(OutputStream stream, byte channelID)
     {
+        if (protocol != TCP) return;
         outputStream = stream;
         channelIdentifier = channelID;
     }
@@ -235,7 +233,7 @@ public abstract class MediaStream implements Stream
     {
         return getPacketizer().getSSRC();
     }
-//
+
 //    protected void createSockets() throws IOException
 //    {
 //        if (pipeAPI == PIPE_API_LS) {

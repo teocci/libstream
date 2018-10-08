@@ -22,7 +22,6 @@ import java.util.regex.Pattern;
 import static com.github.teocci.libstream.enums.Protocol.UDP;
 import static com.github.teocci.libstream.enums.RtspMethod.OPTIONS;
 import static com.github.teocci.libstream.threads.Response.STATUS_BAD_REQUEST;
-import static com.github.teocci.libstream.threads.Response.STATUS_INTERNAL_SERVER_ERROR;
 import static com.github.teocci.libstream.utils.Config.SERVER_NAME;
 
 /**
@@ -155,23 +154,25 @@ public class WorkerThread extends Thread implements Runnable
             }
         }
 
+        rtspServer.setStreaming(false);
+        rtspServer.postMessage(MESSAGE_STREAMING_STOPPED);
+
         // Streaming stops when client disconnects
-        boolean streaming = rtspServer.isStreaming();
+//        boolean streaming = rtspServer.isStreaming();
         session.syncStop();
-        if (streaming && !rtspServer.isStreaming()) {
-            rtspServer.postMessage(MESSAGE_STREAMING_STOPPED);
-        }
+//        if (streaming && !rtspServer.isStreaming()) {
+//            rtspServer.postMessage(MESSAGE_STREAMING_STOPPED);
+//        }
         session.release();
 
         try {
             client.close();
         } catch (IOException ignore) {}
 
-        rtspServer.streaming = false;
         LogHelper.e(TAG, "Client disconnected");
     }
 
-    public Response processRequest(Request request) throws IllegalStateException, IOException
+    public Response processRequest(Request request) throws IllegalStateException
     {
         Response response = new Response(request);
         String requestAttributes;
@@ -268,12 +269,13 @@ public class WorkerThread extends Thread implements Runnable
 
                     session.updateDestination();
 
-                    rtspServer.streaming = true;
+                    rtspServer.setStreaming(true);
+                    rtspServer.postMessage(MESSAGE_STREAMING_STARTED);
 
 //                    boolean streaming = rtspServer.isStreaming();
 //                    session.syncStart(trackId);
 //                    if (!streaming && rtspServer.isStreaming()) {
-//                      rtspServer.postMessage(MESSAGE_STREAMING_STARTED);
+//                          rtspServer.postMessage(MESSAGE_STREAMING_STARTED);
 //                    }
 
                     response.attributes = params + "ssrc=" + Integer.toHexString(ssrc) + ";" +
@@ -311,14 +313,14 @@ public class WorkerThread extends Thread implements Runnable
                 case TEARDOWN:
                     response.status = Response.STATUS_OK;
 
-                    rtspServer.streaming = false;
+                    rtspServer.setStreaming(false);
 
                     break;
                 default:
                     LogHelper.e(TAG, "Command unknown: " + request);
                     response.status = STATUS_BAD_REQUEST;
 
-                    rtspServer.streaming = false;
+                    rtspServer.setStreaming(false);
 
                     break;
             }
@@ -361,8 +363,7 @@ public class WorkerThread extends Thread implements Runnable
             String received = auth.substring(auth.lastIndexOf(" ") + 1);
             String local = username + ":" + password;
             String localEncoded = Base64.encodeToString(local.getBytes(), Base64.NO_WRAP);
-            if (localEncoded.equals(received))
-                return true;
+            return localEncoded.equals(received);
         }
 
         return false;

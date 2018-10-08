@@ -184,23 +184,31 @@ public class Session
         }
     }
 
-//	/** Returns the underlying {@link AudioStream} used by the {@link Session}. */
-//	public AudioStream getAudioTrack() {
-//		return audioStream;
-//	}
+//    /**
+//     * Returns the underlying {@link AudioStream} used by the {@link Session}.
+//     */
+//    public AudioStream getAudioTrack()
+//    {
+//        return audioStream;
+//    }
 //
-//	/** Returns the underlying {@link VideoStream} used by the {@link Session}. */
-//	public VideoStream getVideoTrack() {
-//		return videoStream;
-//	}
+//    /**
+//     * Returns the underlying {@link VideoStream} used by the {@link Session}.
+//     */
+//    public VideoStream getVideoTrack()
+//    {
+//        return videoStream;
+//    }
 //
-//	/**
-//	 * Sets the callback interface that will be called by the {@link Session}.
-//	 * @param callback The implementation of the {@link SessionCallback} interface
-//	 */
-//	public void setCallback(SessionCallback callback) {
-//		this.sessionCallback = callback;
-//	}
+//    /**
+//     * Sets the callback interface that will be called by the {@link Session}.
+//     *
+//     * @param callback The implementation of the {@link SessionCallback} interface
+//     */
+//    public void setCallback(SessionCallback callback)
+//    {
+//        this.sessionCallback = callback;
+//    }
 
     /**
      * The origin address of the session.
@@ -507,7 +515,9 @@ public class Session
      */
     public void stop()
     {
-        handler.post(this::syncStop);
+        if (handler.getLooper().getThread().isAlive()) {
+            handler.post(this::syncStop);
+        }
     }
 
     /**

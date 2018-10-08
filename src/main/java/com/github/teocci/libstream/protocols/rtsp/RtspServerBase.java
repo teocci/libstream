@@ -183,7 +183,6 @@ public abstract class RtspServerBase extends Service
      */
     public void start()
     {
-        LogHelper.e(TAG, "start()");
         if (!enabled || restart) stop();
         if (enabled && listenerThread == null) {
             try {
@@ -191,9 +190,11 @@ public abstract class RtspServerBase extends Service
                 LogHelper.e(TAG, "RequestWorker() called");
             } catch (Exception e) {
                 listenerThread = null;
+                postMessage(MESSAGE_STREAMING_STOPPED);
             }
         }
         restart = false;
+        LogHelper.e(TAG, "start()");
     }
 
     /**
@@ -216,6 +217,7 @@ public abstract class RtspServerBase extends Service
                 postMessage(MESSAGE_STREAMING_STOPPED);
             }
         }
+        LogHelper.e(TAG, "stop()");
     }
 
     public void postError(Exception exception, int id)
@@ -295,6 +297,12 @@ public abstract class RtspServerBase extends Service
     {
         this.currentSession = currentSession;
     }
+
+    public void setStreaming(boolean streaming)
+    {
+        this.streaming = streaming;
+    }
+
 
     public ConnectCheckerRtsp getConnectCheckerRtsp()
     {

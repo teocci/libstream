@@ -49,7 +49,6 @@ public class AacPacket extends BasePacket
     @Override
     public void createAndSendPacket(ByteBuffer byteBuffer, BufferInfo bufferInfo)
     {
-        LogHelper.e(TAG, "createAndSendPacket()");
         // 3.3.6.  High Bit-rate AAC
         //
         //    0               1               2               3
@@ -66,6 +65,7 @@ public class AacPacket extends BasePacket
         // n |                              ...                              |
         //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
+//        LogHelper.e(TAG, "createAndSendPacket()");
         boolean interrupted = false;
         try {
             buffer = socket.requestBuffer();
