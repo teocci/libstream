@@ -69,7 +69,7 @@ public class MicManager
         int channelConfig = channel == STEREO ? CHANNEL_IN_STEREO : CHANNEL_IN_MONO;
 
         audioRecord = new AudioRecord(
-                MediaRecorder.AudioSource.DEFAULT,
+                MediaRecorder.AudioSource.MIC,
                 sampleRate,
                 channelConfig,
                 audioFormat,
@@ -77,6 +77,7 @@ public class MicManager
         );
 
         audioPostProcessEffect = new AudioPostProcessEffect(audioRecord.getAudioSessionId());
+        audioPostProcessEffect.enableAutoGainControl();
         if (echoCanceler) audioPostProcessEffect.enableEchoCanceler();
         if (noiseSuppressor) audioPostProcessEffect.enableNoiseSuppressor();
 
@@ -165,6 +166,7 @@ public class MicManager
             audioRecord = null;
         }
         if (audioPostProcessEffect != null) {
+            audioPostProcessEffect.releaseAutoGainControl();
             audioPostProcessEffect.releaseEchoCanceler();
             audioPostProcessEffect.releaseNoiseSuppressor();
         }
