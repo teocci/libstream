@@ -69,7 +69,7 @@ public class MicManager
         int channelConfig = channel == STEREO ? CHANNEL_IN_STEREO : CHANNEL_IN_MONO;
 
         audioRecord = new AudioRecord(
-                MediaRecorder.AudioSource.MIC,
+                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
                 sampleRate,
                 channelConfig,
                 audioFormat,
