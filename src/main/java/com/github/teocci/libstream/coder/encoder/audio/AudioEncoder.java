@@ -16,7 +16,6 @@ import java.nio.ByteBuffer;
 import static android.media.MediaCodec.CONFIGURE_FLAG_ENCODE;
 import static android.media.MediaCodec.INFO_OUTPUT_FORMAT_CHANGED;
 import static android.media.MediaCodecInfo.CodecProfileLevel.AACObjectLC;
-import static android.media.MediaCodecInfo.CodecProfileLevel.AACObjectLD;
 import static android.media.MediaFormat.KEY_AAC_PROFILE;
 import static android.media.MediaFormat.KEY_BIT_RATE;
 import static android.media.MediaFormat.KEY_MAX_INPUT_SIZE;
@@ -164,7 +163,7 @@ public class AudioEncoder implements MicSinker
 //                    long pts = System.nanoTime() / 1000;
 //                    long pts = computePresentationTime(frameIndex);
                     long pts = System.nanoTime() / 1000L;
-                    pts = getJitterFreePTS(pts, size / 2);
+                    pts = computeJitterFreePTS(pts, size / 2);
                     inputBuffer.put(data, 0, size);
                     audioEncoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
                 }
@@ -212,7 +211,7 @@ public class AudioEncoder implements MicSinker
 //                long pts = System.nanoTime() / 1000;
 //                long pts = computePresentationTime(frameIndex);
                 long pts = System.nanoTime() / 1000L;
-                pts = getJitterFreePTS(pts, size / 2);
+                pts = computeJitterFreePTS(pts, size / 2);
                 inputBuffer.clear();
                 inputBuffer.put(data, 0, size);
                 audioEncoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
@@ -264,7 +263,7 @@ public class AudioEncoder implements MicSinker
      * @param bufferSize the number of samples of the buffer's frame
      * @return corrected presentation timestamp in us
      */
-    private long getJitterFreePTS(long pts, long bufferSize)
+    private long computeJitterFreePTS(long pts, long bufferSize)
     {
         long correctedPts;
         long bufferDuration = 1_000_000L * bufferSize / quality.sampleRate;

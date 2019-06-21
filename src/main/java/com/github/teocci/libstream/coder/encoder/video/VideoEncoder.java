@@ -14,6 +14,7 @@ import android.util.Pair;
 import android.view.Surface;
 
 import com.github.teocci.libstream.enums.FormatVideoEncoder;
+import com.github.teocci.libstream.input.video.FpsLimiter;
 import com.github.teocci.libstream.input.video.Frame;
 import com.github.teocci.libstream.input.video.VideoQuality;
 import com.github.teocci.libstream.interfaces.video.CameraSinker;
@@ -104,7 +105,7 @@ public class VideoEncoder implements CameraSinker
     private boolean sendBlackImage = false;
     private byte[] blackImage;
 
-//    private FpsLimiter fpsLimiter = new FpsLimiter();
+    private FpsLimiter fpsLimiter = new FpsLimiter();
 
     public VideoEncoder(EncoderSinker encoderSinker)
     {
@@ -116,7 +117,7 @@ public class VideoEncoder implements CameraSinker
     {
         synchronized (sync) {
             if (isRunning()) {
-//                if (fpsLimiter.limitFPS(quality.fps)) return;
+                if (fpsLimiter.limitFPS(quality.fps)) return;
                 try {
                     queue.add(buffer);
 //                    queueRotate.add(buffer);
@@ -497,7 +498,7 @@ public class VideoEncoder implements CameraSinker
 //            queueRotate.clear();
 //            queueColor.clear();
 
-//            fpsLimiter.reset();
+            fpsLimiter.reset();
             hasPSPair = false;
             inputSurface = null;
             running = false;
