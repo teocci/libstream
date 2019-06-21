@@ -37,11 +37,11 @@ public abstract class DirectEncoderBase extends EncoderBase
         super(openGlView);
     }
 
-    protected abstract void startRtspStream();
+    protected abstract void startRtpStream();
 
-    protected abstract void startRtspStream(String url);
+    protected abstract void startRtpStream(String url);
 
-    protected abstract void stopRtspStream();
+    protected abstract void stopRtpStream();
 
     protected abstract void prepareAudioRtp(AudioQuality audioQuality);
 
@@ -49,5 +49,5 @@ public abstract class DirectEncoderBase extends EncoderBase
 
     protected abstract void sendH264Data(ByteBuffer h264Buffer, MediaCodec.BufferInfo info);
 
-    protected abstract void setPSPair(ByteBuffer sps, ByteBuffer pps);
+    protected abstract void sendAVCInfo(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps);
 }

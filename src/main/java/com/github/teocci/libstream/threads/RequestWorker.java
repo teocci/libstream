@@ -1,14 +1,16 @@
 package com.github.teocci.libstream.threads;
 
-import com.github.teocci.libstream.protocols.rtsp.RtspServerBase;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.RtspServerBase;
 import com.github.teocci.libstream.utils.LogHelper;
 
 import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.SocketException;
 
 import static com.github.teocci.libstream.threads.WorkerThread.ERROR_BIND_FAILED;
+import static com.github.teocci.libstream.utils.rtsp.RtpConstants.IPTOS_LOWDELAY;
 
 /**
  * Created by teocci.
@@ -41,11 +43,15 @@ public class RequestWorker extends Thread implements Runnable
         LogHelper.e(TAG, "RTSP server listening on port " + server.getLocalPort());
         while (!Thread.interrupted()) {
             try {
-                new WorkerThread(rtspServer, server.accept()).start();
+                Socket socket = server.accept();
+                socket.setTcpNoDelay(true);
+                socket.setTrafficClass(IPTOS_LOWDELAY);
+
+                new WorkerThread(rtspServer, socket).start();
                 LogHelper.e(TAG, "RTSP user");
             } catch (SocketException e) {
                 if (!e.getLocalizedMessage().equals("Socket closed")) break;
-            } catch (IOException e) {
+            } catch (Exception e) {
                 LogHelper.e(TAG, e.getMessage());
             }
         }

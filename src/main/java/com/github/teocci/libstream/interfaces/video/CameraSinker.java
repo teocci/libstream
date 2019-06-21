@@ -1,6 +1,8 @@
 package com.github.teocci.libstream.interfaces.video;
 
 
+import com.github.teocci.libstream.input.video.Frame;
+
 /**
  * Created by teocci.
  *
@@ -10,4 +12,6 @@ package com.github.teocci.libstream.interfaces.video;
 public interface CameraSinker
 {
     void onYUVData(byte[] buffer);
+
+    void onYUVData(Frame frame);
 }

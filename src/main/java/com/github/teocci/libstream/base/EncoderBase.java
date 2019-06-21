@@ -6,7 +6,6 @@ import android.graphics.PointF;
 import android.hardware.Camera;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
-import android.media.MediaMuxer;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Pair;
@@ -15,17 +14,22 @@ import android.view.TextureView;
 
 import com.github.teocci.libstream.coder.encoder.audio.AudioEncoder;
 import com.github.teocci.libstream.coder.encoder.video.VideoEncoder;
+import com.github.teocci.libstream.controllers.RecordController;
 import com.github.teocci.libstream.enums.CameraFacing;
 import com.github.teocci.libstream.enums.ColorEffect;
+import com.github.teocci.libstream.enums.FormatVideoEncoder;
+import com.github.teocci.libstream.enums.RecordStatus;
 import com.github.teocci.libstream.exceptions.CameraInUseException;
 import com.github.teocci.libstream.input.audio.AudioQuality;
 import com.github.teocci.libstream.input.audio.MicManager;
 import com.github.teocci.libstream.input.video.CamManager;
+import com.github.teocci.libstream.input.video.Frame;
 import com.github.teocci.libstream.input.video.VideoQuality;
+import com.github.teocci.libstream.interfaces.RecordStatusListener;
 import com.github.teocci.libstream.interfaces.audio.AACSinker;
 import com.github.teocci.libstream.interfaces.audio.MicSinker;
 import com.github.teocci.libstream.interfaces.video.CameraSinker;
-import com.github.teocci.libstream.interfaces.video.H264Sinker;
+import com.github.teocci.libstream.interfaces.video.EncoderSinker;
 import com.github.teocci.libstream.utils.LogHelper;
 import com.github.teocci.libstream.utils.gl.GifStreamObject;
 import com.github.teocci.libstream.utils.gl.ImageStreamObject;
@@ -40,8 +44,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import static android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK;
-import static com.github.teocci.libstream.enums.VideoEncodingFormat.SURFACE;
-import static com.github.teocci.libstream.enums.VideoEncodingFormat.YUV420DYNAMICAL;
+import static com.github.teocci.libstream.enums.FormatVideoEncoder.SURFACE;
+import static com.github.teocci.libstream.enums.FormatVideoEncoder.YUV420DYNAMICAL;
+import static com.github.teocci.libstream.utils.CameraHelper.getCameraOrientation;
+import static com.github.teocci.libstream.utils.CodecUtil.IFRAME_INTERVAL;
 import static com.github.teocci.libstream.utils.Utils.minAPI18;
 import static com.github.teocci.libstream.utils.Utils.minAPI19;
 
@@ -50,7 +56,7 @@ import static com.github.teocci.libstream.utils.Utils.minAPI19;
  *
  * @author teocci@yandex.com on 2017-Jan-14
  */
-public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker, H264Sinker
+public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker, EncoderSinker
 {
     private static String TAG = LogHelper.makeLogTag(EncoderBase.class);
 
@@ -58,9 +64,11 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
     private OpenGlView openGlView;
 
     // Record
-    private MediaMuxer mediaMuxer;
-    private MediaFormat videoFormat;
-    private MediaFormat audioFormat;
+    protected RecordController recordController;
+
+//    private MediaMuxer mediaMuxer;
+//    private MediaFormat videoFormat;
+//    private MediaFormat audioFormat;
 
     protected CamManager camManager;
     protected MicManager micManager;
@@ -68,33 +76,27 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
     protected VideoEncoder videoEncoder;
     protected AudioEncoder audioEncoder;
 
-    private int videoTrack = -1;
-    private int audioTrack = -1;
+    private int previewWidth, previewHeight;
 
-    private boolean streaming;
+    private boolean streaming = false;
 
     private boolean videoEnabled = true;
-    private boolean recording = false;
-    private boolean canRecord = false;
     private boolean onPreview = false;
 
     public EncoderBase(SurfaceView surfaceView)
     {
+        context = surfaceView.getContext();
         camManager = new CamManager(surfaceView, this);
-        videoEncoder = new VideoEncoder(this);
-        micManager = new MicManager(this);
-        audioEncoder = new AudioEncoder(this);
-        streaming = false;
+
+        init();
     }
 
     public EncoderBase(TextureView textureView)
     {
+        context = textureView.getContext();
         camManager = new CamManager(textureView, this);
-        videoEncoder = new VideoEncoder(this);
-        audioEncoder = new AudioEncoder(this);
 
-        micManager = new MicManager(this);
-        streaming = false;
+        init();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -103,40 +105,54 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         this.openGlView = openGlView;
         this.context = openGlView.getContext();
 
-        this.videoEncoder = new VideoEncoder(this);
-        this.audioEncoder = new AudioEncoder(this);
-
-        this.micManager = new MicManager(this);
-
-        this.streaming = false;
+        init();
     }
 
+
+    // Implementations
+
+    /**
+     * TODO: Merge with onSpsPpsVpsReady()
+     *
+     * @param psPair
+     */
     @Override
     public void onPSReady(Pair<ByteBuffer, ByteBuffer> psPair)
     {
         LogHelper.e(TAG, "onPSReady()");
-        setPSPair(psPair.first, psPair.second);
+        sendAVCInfo(psPair.first, psPair.second, null);
+    }
+
+
+    /**
+     * TODO: Merge with onPSReady()
+     *
+     * @param sps
+     * @param pps
+     * @param vps
+     */
+    @Override
+    public void onSpsPpsVpsReady(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps)
+    {
+        sendAVCInfo(sps, pps, vps);
     }
 
     @Override
     public void onAACData(ByteBuffer aacBuffer, MediaCodec.BufferInfo info)
     {
-        if (minAPI19() && recording && audioTrack != -1 && canRecord) {
-            mediaMuxer.writeSampleData(audioTrack, aacBuffer, info);
+        if (minAPI19()) {
+            recordController.recordAudio(aacBuffer, info);
         }
-        sendAACData(aacBuffer, info);
+        if (streaming) sendAACData(aacBuffer, info);
     }
 
     @Override
-    public void onH264Data(ByteBuffer h264Buffer, MediaCodec.BufferInfo info)
+    public void onEncodedData(ByteBuffer videoBuffer, MediaCodec.BufferInfo info)
     {
-        if (minAPI19() && recording && videoTrack != -1) {
-            if (info.flags == MediaCodec.BUFFER_FLAG_KEY_FRAME) canRecord = true;
-            if (canRecord) {
-                mediaMuxer.writeSampleData(videoTrack, h264Buffer, info);
-            }
+        if (minAPI19()) {
+            recordController.recordVideo(videoBuffer, info);
         }
-        sendH264Data(h264Buffer, info);
+        if (streaming) sendH264Data(videoBuffer, info);
     }
 
     @Override
@@ -152,58 +168,115 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
     }
 
     @Override
+    public void onYUVData(Frame frame)
+    {
+        videoEncoder.onYUVData(frame);
+    }
+
+    @Override
     public void onVideoFormat(MediaFormat mediaFormat)
     {
-        videoFormat = mediaFormat;
+//        videoFormat = mediaFormat;
+        recordController.setVideoFormat(mediaFormat);
     }
 
     @Override
     public void onAudioFormat(MediaFormat mediaFormat)
     {
-        audioFormat = mediaFormat;
+//        audioFormat = mediaFormat;
+        recordController.setAudioFormat(mediaFormat);
     }
 
 
+    // Class Methods
+
+    private void init()
+    {
+        videoEncoder = new VideoEncoder(this);
+        micManager = new MicManager(this);
+        audioEncoder = new AudioEncoder(this);
+        recordController = new RecordController();
+    }
+
+
+    /**
+     * Same to call: rotation = 0; if (Portrait) rotation = 90; prepareVideo(640, 480, 30, 1200 *
+     * 1024, false, rotation);
+     *
+     * @return true if success, false if you get a error (Normally because the encoder selected
+     * doesn't support any configuration seated or your device hasn't a H264 encoder).
+     */
+    public boolean prepareVideo()
+    {
+        int orientation = getCameraOrientation(context);
+
+        return prepareVideo(VideoQuality.DEFAULT, false, orientation);
+    }
+
+
+    /**
+     * TODO: active implementation
+     *
+     * @param quality
+     * @return
+     */
     public boolean prepareVideo(VideoQuality quality)
     {
         return prepareVideo(quality, false, 0);
     }
 
-    public boolean prepareVideo(VideoQuality quality, boolean hardwareRotation, int rotation)
+    public boolean prepareVideo(VideoQuality quality, boolean hardwareRotation, int orientation)
+    {
+        return prepareVideo(quality, hardwareRotation, orientation, IFRAME_INTERVAL);
+    }
+
+    /**
+     * Call this method before use @startStream. If not you will do a stream without video. NOTE:
+     * Rotation with encoder is silence ignored in some devices.
+     *
+     * @param quality          represents the quality of the video stream.
+     * @param hardwareRotation true if you want rotate using encoder, false if you want rotate with
+     *                         software if you are using a SurfaceView or TextureView or with OpenGl if you are using
+     *                         OpenGlView.
+     * @param orientation      could be 90, 180, 270 or 0. You should use CameraHelper.getCameraOrientation
+     *                         with SurfaceView or TextureView and 0 with OpenGlView or LightOpenGlView. NOTE: Rotation with
+     *                         encoder is silence ignored in some devices.
+     * @param iFrameInterval   seconds between I-frames
+     * @return true if success, false if you get a error (Normally because the encoder selected
+     * doesn't support any configuration seated or your device hasn't a H264 encoder).
+     */
+    public boolean prepareVideo(VideoQuality quality, boolean hardwareRotation, int orientation, int iFrameInterval)
     {
         LogHelper.e(TAG, "prepareVideo called");
         if (onPreview) {
             stopPreview();
             onPreview = true;
         }
-        // Supported nv21 and yv12
-        int imageFormat = ImageFormat.NV21;
-        if (openGlView == null) {
-            camManager.prepare(quality, imageFormat);
-            videoEncoder.setImageFormat(imageFormat);
-            return videoEncoder.prepare(quality, rotation, hardwareRotation, YUV420DYNAMICAL);
-        } else {
-            return videoEncoder.prepare(quality, rotation, hardwareRotation, SURFACE);
-        }
+
+        // Supported NV21 and YV12
+        FormatVideoEncoder format = openGlView == null ? YUV420DYNAMICAL : SURFACE;
+
+        return videoEncoder.prepare(quality, hardwareRotation, orientation, iFrameInterval, format);
+
+
+//        if (openGlView == null) {
+//            camManager.prepare(quality, imageFormat);
+//            videoEncoder.setImageFormat(imageFormat);
+//            return videoEncoder.prepare(quality, rotation, hardwareRotation, YUV420DYNAMICAL);
+//        } else {
+//            return videoEncoder.prepare(quality, rotation, hardwareRotation, SURFACE);
+//        }
     }
 
-    public boolean prepareVideo()
+    /**
+     * Prepares the audio using a default configuration in stereo with 44100 Hz sample rate, and 128 * 1024 bps bitrate
+     *
+     * @return true if success, false if you get a error (Normally because the encoder selected
+     * doesn't support any configuration seated or your device hasn't a AAC encoder).
+     */
+    public boolean prepareAudio()
     {
-        if (onPreview) {
-            stopPreview();
-            onPreview = true;
-        }
-        if (openGlView == null) {
-            camManager.prepare();
-            return videoEncoder.prepare();
-        } else {
-            int orientation = 0;
-            if (context.getResources().getConfiguration().orientation == 1) {
-                orientation = 90;
-            }
-
-            return videoEncoder.prepare(VideoQuality.DEFAULT, orientation, false, SURFACE);
-        }
+        return prepareAudio(AudioQuality.DEFAULT, false, false);
     }
 
     public boolean prepareAudio(AudioQuality quality)
@@ -211,63 +284,95 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         return prepareAudio(quality, true, true);
     }
 
+    /**
+     * Call this method before use @startStream. If not you will do a stream without audio.
+     *
+     * @param quality         represents the quality of the audio stream
+     * @param echoCanceler    true enable echo canceler, false disable.
+     * @param noiseSuppressor true enable noise suppressor, false  disable.
+     * @return true if success, false if you get a error (Normally because the encoder selected
+     * doesn't support any configuration seated or your device hasn't a AAC encoder).
+     */
     public boolean prepareAudio(AudioQuality quality, boolean echoCanceler, boolean noiseSuppressor)
     {
         LogHelper.e(TAG, quality);
-        micManager.config(quality.sampleRate, quality.channel, echoCanceler, noiseSuppressor);
+        micManager.config(quality, echoCanceler, noiseSuppressor);
         prepareAudioRtp(quality);
         return audioEncoder.prepare(quality);
     }
 
-    public boolean prepareAudio()
+    /**
+     * Start record a MP4 video. Need be called while stream.
+     *
+     * @param path where file will be saved.
+     * @throws IOException If you init it before encode stream.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public void startRecord(final String path) throws IOException
     {
-        micManager.config();
-        return audioEncoder.prepare();
+        startRecord(path, null);
     }
 
     /**
-     * Need be called while stream
+     * Start record a MP4 video. Need be called while stream.
+     *
+     * @param path     where file will be saved.
+     * @param listener is the callback for the record status
+     * @throws IOException If you init it before start stream.
      */
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void startRecord(String path) throws IOException
+    public void startRecord(final String path, RecordStatusListener listener) throws IOException
     {
-        if (streaming) {
-            mediaMuxer = new MediaMuxer(path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
-            if (videoFormat != null) {
-                videoTrack = mediaMuxer.addTrack(videoFormat);
-            }
-            if (audioFormat != null) {
-                audioTrack = mediaMuxer.addTrack(audioFormat);
-            }
-            mediaMuxer.start();
-            recording = true;
-        } else {
-            throw new IOException("Need be called while stream");
+        if (!streaming) {
+            startEncoders();
+        } else if (videoEncoder.isRunning()) {
+            resetVideoEncoder();
         }
+
+        recordController.startRecord(path, listener);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void stopRecord()
+
+    public void startPreview()
     {
-        recording = false;
-        canRecord = false;
-        if (mediaMuxer != null) {
-            mediaMuxer.stop();
-            mediaMuxer.release();
-            mediaMuxer = null;
-        }
-        videoTrack = -1;
-        audioTrack = -1;
+        startPreview(CAMERA_FACING_BACK);
+    }
+
+    public void startPreview(@CameraFacing int cameraFacing)
+    {
+        startPreview(cameraFacing, VideoQuality.DEFAULT.width, VideoQuality.DEFAULT.height);
+    }
+
+    public void startPreview(int width, int height)
+    {
+        startPreview(CAMERA_FACING_BACK, width, height);
     }
 
     public void startPreview(@CameraFacing int cameraFacing, int width, int height)
     {
+        startPreview(cameraFacing, width, height, getCameraOrientation(context));
+    }
+
+    /**
+     * Start camera preview. Ignored, if stream or preview is started.
+     *
+     * @param cameraFacing front or back camera identifier
+     * @param width        of preview in px.
+     * @param height       of preview in px.
+     * @param orientation  camera rotation (0, 90, 180, 270).
+     */
+    public void startPreview(@CameraFacing int cameraFacing, int width, int height, int orientation)
+    {
         if (!isStreaming() && !onPreview) {
+            previewWidth = width;
+            previewHeight = height;
+
             if (openGlView != null && minAPI18()) {
                 openGlView.startGLThread();
                 camManager = new CamManager(openGlView.getSurfaceTexture(), openGlView.getContext());
             }
             camManager.prepare();
+            camManager.setOrientation(orientation);
             if (width == 0 || height == 0) {
                 camManager.start(cameraFacing);
             } else {
@@ -279,54 +384,94 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         }
     }
 
-    public void startPreview(@CameraFacing int cameraFacing)
-    {
-        startPreview(cameraFacing, 0, 0);
-    }
-
-    public void startPreview(int width, int height)
-    {
-        startPreview(CAMERA_FACING_BACK, width, height);
-    }
-
-    public void startPreview()
-    {
-        startPreview(CAMERA_FACING_BACK);
-    }
-
-    public void stopPreview()
-    {
-        if (!isStreaming() && onPreview) {
-            if (openGlView != null && minAPI18()) {
-                openGlView.stopGlThread();
-            }
-            camManager.stop();
-            onPreview = false;
-        } else {
-            LogHelper.e(TAG, "Streaming or preview stopped, ignored");
-        }
-    }
-
-    public void setPreviewOrientation(int orientation)
-    {
-        camManager.setPreviewOrientation(orientation);
-    }
-
     public void startStream()
     {
-        prepareCamera();
+//        prepareCamera();
         startProcessing();
-        startRtspStream();
+        startRtpStream();
     }
 
+    /**
+     * Need be called after @prepareVideo or/and @prepareAudio. This method override resolution of
+     *
+     * @param url of the stream like: protocol://ip:port/application/streamName
+     *            <p>
+     *            RTSP: rtsp://192.168.1.1:1935/live/pedroSG94 RTSPS: rtsps://192.168.1.1:1935/live/pedroSG94
+     *            RTMP: rtmp://192.168.1.1:1935/live/pedroSG94 RTMPS: rtmps://192.168.1.1:1935/live/pedroSG94
+     * @startPreview to resolution seated in @prepareVideo. If you never startPreview this method
+     * startPreview for you to resolution seated in @prepareVideo.
+     */
     public void startStream(String url)
     {
         prepareCamera();
         startProcessing();
-        startRtspStream(url);
+        startRtpStream(url);
+    }
+
+    private void startProcessing()
+    {
+        videoEncoder.start();
+        audioEncoder.start();
+
+        camManager.start();
+        micManager.start();
+
+        streaming = true;
+        onPreview = true;
+    }
+
+    private void startEncoders()
+    {
+        videoEncoder.start();
+        audioEncoder.start();
+//        prepareGlView();
+        prepareCamera();
+        camManager.setOrientation(videoEncoder.getRotation());
+        if (!camManager.isRunning() && videoEncoder.getWidth() != previewWidth || videoEncoder.getHeight() != previewHeight) {
+            camManager.start(videoEncoder.getQuality());
+        }
+        micManager.start();
+    }
+
+    private void resetVideoEncoder()
+    {
+        if (openGlView != null && minAPI18()) {
+            openGlView.removeMediaCodecSurface();
+        }
+        videoEncoder.reset();
+        if (openGlView != null && minAPI18()) {
+            openGlView.addMediaCodecSurface(videoEncoder.getInputSurface());
+        }
+    }
+
+    /**
+     * TODO
+     */
+    private void prepareGlView()
+    {
+        if (openGlView != null && minAPI18()) {
+            openGlView.startGLThread();
+            if (videoEncoder.getRotation() == 90 || videoEncoder.getRotation() == 270) {
+                openGlView.setEncoderSize(videoEncoder.getHeight(), videoEncoder.getWidth());
+            } else {
+                openGlView.setEncoderSize(videoEncoder.getWidth(), videoEncoder.getHeight());
+            }
+            // TODO: rotation
+            openGlView.setRotation(0);
+            if (!camManager.isRunning() && videoEncoder.getWidth() != previewWidth || videoEncoder.getHeight() != previewHeight) {
+                openGlView.startGLThread();
+            }
+            if (videoEncoder.getInputSurface() != null) {
+                openGlView.addMediaCodecSurface(videoEncoder.getInputSurface());
+            }
+            camManager.setSurfaceTexture(openGlView.getSurfaceTexture());
+        }
     }
 
 
+    /**
+     * OLD Implementations
+     */
     private void prepareCamera()
     {
         if (openGlView != null && minAPI18()) {
@@ -348,22 +493,53 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         }
     }
 
-    private void startProcessing()
+
+    /**
+     * Stops recording the MP4 video started by the startRecord() method. If you don't call it file will be unreadable.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public void stopRecord()
     {
-        videoEncoder.start();
-        audioEncoder.start();
-
-        camManager.start();
-        micManager.start();
-
-        streaming = true;
-        onPreview = true;
+        recordController.stopRecord();
+        if (!streaming) stopStream();
+//        recording = false;
+//        canRecord = false;
+//        if (mediaMuxer != null) {
+//            mediaMuxer.stop();
+//            mediaMuxer.release();
+//            mediaMuxer = null;
+//        }
+//        videoTrack = -1;
+//        audioTrack = -1;
     }
 
+
+    /**
+     * Stop camera preview. Ignored if streaming or already stopped. You need call it after calling the stopStream()
+     * method to release camera properly if you will close activity.
+     */
+    public void stopPreview()
+    {
+        if (!isStreaming() && onPreview) {
+            if (openGlView != null && minAPI18()) {
+                openGlView.stopGlThread();
+            }
+            camManager.stop();
+            onPreview = false;
+            previewWidth = 0;
+            previewHeight = 0;
+        } else {
+            LogHelper.e(TAG, "Streaming or preview stopped, ignored");
+        }
+    }
+
+    /**
+     * Stop stream started by the startStream() method.
+     */
     public void stopStream()
     {
         stopProcessing();
-        stopRtspStream();
+        stopRtpStream();
     }
 
     private void stopProcessing()
@@ -380,6 +556,131 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
 
         streaming = false;
     }
+
+    /**
+     * Switch camera used. Can be called on preview or while stream, ignored with preview off.
+     *
+     * @throws CameraInUseException If the other camera doesn't support same resolution.
+     */
+    public void switchCamera() throws CameraInUseException
+    {
+        if (isStreaming() || onPreview) {
+            camManager.switchCamera();
+        }
+    }
+
+    public void handleZoom(int newZoom)
+    {
+        camManager.handleZoom(newZoom);
+    }
+
+
+    /**
+     * Mute microphone, can be called before, while and after stream.
+     */
+    public void disableAudio()
+    {
+        micManager.mute();
+    }
+
+    /**
+     * Enable a muted microphone, can be called before, while and after stream.
+     */
+    public void enableAudio()
+    {
+        micManager.unMute();
+    }
+
+    /**
+     * Disable send camera frames and send a black image with low bitrate(to reduce bandwith used)
+     * instance it.
+     */
+    public void disableVideo()
+    {
+        videoEncoder.startSendBlackImage();
+        videoEnabled = false;
+    }
+
+    /**
+     * Enable send camera frames.
+     */
+    public void enableVideo()
+    {
+        videoEncoder.stopSendBlackImage();
+        videoEnabled = true;
+    }
+
+    public void pauseRecord()
+    {
+        recordController.pauseRecord();
+    }
+
+    public void resumeRecord()
+    {
+        recordController.resumeRecord();
+    }
+
+
+    // Setters
+
+    /**
+     * Change preview orientation can be called while stream.
+     *
+     * @param orientation of the camera preview. Could be 90, 180, 270 or 0.
+     */
+    public void setPreviewOrientation(int orientation)
+    {
+        camManager.setPreviewOrientation(orientation);
+    }
+
+    /**
+     * Set zoomIn or zoomOut to camera.
+     *
+     * @param newZoom motion value
+     */
+    public void setZoom(int newZoom)
+    {
+        camManager.setZoom(newZoom);
+    }
+
+
+    /**
+     * Set video bitrate of H264 in kb while stream.
+     *
+     * @param bitrate H264 in kb.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    public void setVideoBitrateOnFly(int bitrate)
+    {
+        videoEncoder.setVideoBitrateOnFly(bitrate);
+    }
+
+    /**
+     * Set limit FPS while stream. This will be override when you call to prepareVideo method. This
+     * could produce a change in iFrameInterval.
+     *
+     * @param fps frames per second
+     */
+    public void setLimitFPSOnFly(int fps)
+    {
+        videoEncoder.setFps(fps);
+    }
+
+    public void setEffect(ColorEffect effect)
+    {
+        if (isStreaming()) {
+            camManager.setEffect(effect);
+        }
+    }
+
+
+    // Getters
+
+    public RecordStatus getRecordStatus()
+    {
+        return recordController.getStatus();
+    }
+
 
     public List<String> getBackResolutionsString()
     {
@@ -427,223 +728,82 @@ public abstract class EncoderBase implements MicSinker, AACSinker, CameraSinker,
         return -1;
     }
 
-    public void disableAudio()
-    {
-        micManager.mute();
-    }
 
-    public void enableAudio()
-    {
-        micManager.unMute();
-    }
-
-    public void disableVideo()
-    {
-        videoEncoder.startSendBlackImage();
-        videoEnabled = false;
-    }
-
-    public void enableVideo()
-    {
-        videoEncoder.stopSendBlackImage();
-        videoEnabled = true;
-    }
-
-    public void switchCamera() throws CameraInUseException
-    {
-        if (isStreaming() || onPreview) {
-            camManager.switchCamera();
-        }
-    }
-
-    public void handleZoom(int newZoom)
-    {
-        camManager.handleZoom(newZoom);
-    }
-
-    public void setZoom(int newZoom)
-    {
-        camManager.setZoom(newZoom);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void setGifStreamObject(GifStreamObject gifStreamObject) throws RuntimeException
-    {
-        if (openGlView != null) {
-            openGlView.setGif(gifStreamObject);
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to set a gif");
-        }
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void setImageStreamObject(ImageStreamObject imageStreamObject) throws RuntimeException
-    {
-        if (openGlView != null) {
-            openGlView.setImage(imageStreamObject);
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to set an image");
-        }
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void setTextStreamObject(TextStreamObject textStreamObject) throws RuntimeException
-    {
-        if (openGlView != null) {
-            openGlView.setText(textStreamObject);
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to set a text");
-        }
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void clearStreamObject() throws RuntimeException
-    {
-        if (openGlView != null) {
-            openGlView.clear();
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to set a text");
-        }
-    }
+    // Boolean Methods
 
     /**
-     * @param alpha of the stream object on fly, 1.0f totally opaque and 0.0f totally transparent
-     * @throws RuntimeException if is not an OpenGLView
+     * Gets stream state.
+     *
+     * @return true if streaming, false if not streaming.
      */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void setAlphaStreamObject(float alpha) throws RuntimeException
-    {
-        if (openGlView != null) {
-            openGlView.setStreamObjectAlpha(alpha);
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to set an alpha");
-        }
-    }
-
-    /**
-     * @param sizeX of the stream object in percent: 100 full screen to 1
-     * @param sizeY of the stream object in percent: 100 full screen to 1
-     * @throws RuntimeException if is not an OpenGLView
-     */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void setSizeStreamObject(float sizeX, float sizeY) throws RuntimeException
-    {
-        if (openGlView != null) {
-            openGlView.setStreamObjectSize(sizeX, sizeY);
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to set a size");
-        }
-    }
-
-    /**
-     * @param x of the stream object in percent: 100 full screen left to 0 full right
-     * @param y of the stream object in percent: 100 full screen top to 0 full bottom
-     * @throws RuntimeException if is not an OpenGLView
-     */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void setPositionStreamObject(float x, float y) throws RuntimeException
-    {
-        if (openGlView != null) {
-            openGlView.setStreamObjectPosition(x, y);
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to set a position");
-        }
-    }
-
-    /**
-     * @param position pre determinate positions
-     * @throws RuntimeException if is not an OpenGLView
-     */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void setPositionStreamObject(Position position) throws RuntimeException
-    {
-        if (openGlView != null) {
-            openGlView.setStreamObjectPosition(position);
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to set a position");
-        }
-    }
-
-    /**
-     * @return scale in percent, 0 is stream not started
-     * @throws RuntimeException if is not an OpenGLView
-     */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public PointF getSizeStreamObject() throws RuntimeException
-    {
-        if (openGlView != null) {
-            return openGlView.getScale();
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to get position");
-        }
-    }
-
-    /**
-     * @return position in percent, 0 is stream not started
-     * @throws RuntimeException if is not an OpenGLView
-     */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public PointF getPositionStreamObject() throws RuntimeException
-    {
-        if (openGlView != null) {
-            return openGlView.getPosition();
-        } else {
-            throw new RuntimeException("You must use OpenGlView in the constructor to get scale");
-        }
-    }
-
-    /**
-     * need min API 19
-     */
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    public void setVideoBitrateOnFly(int bitrate)
-    {
-        videoEncoder.setVideoBitrateOnFly(bitrate);
-    }
-
-    public void setEffect(ColorEffect effect)
-    {
-        if (isStreaming()) {
-            camManager.setEffect(effect);
-        }
-    }
-
-    protected abstract void startRtspStream();
-
-    protected abstract void startRtspStream(String url);
-
-    protected abstract void stopRtspStream();
-
-    protected abstract void prepareAudioRtp(AudioQuality audioQuality);
-
-    protected abstract void sendAACData(ByteBuffer aacBuffer, MediaCodec.BufferInfo info);
-
-    protected abstract void sendH264Data(ByteBuffer h264Buffer, MediaCodec.BufferInfo info);
-
-    protected abstract void setPSPair(ByteBuffer sps, ByteBuffer pps);
-
     public boolean isStreaming()
     {
         return streaming;
     }
 
+    /**
+     * Gets preview state.
+     *
+     * @return true if enabled, false if disabled.
+     */
     public boolean isOnPreview()
     {
         return onPreview;
     }
 
+    /**
+     * Gets record state.
+     *
+     * @return true if recording, false if not recoding.
+     */
     public boolean isRecording()
     {
-        return recording;
+        return recordController.isRunning();
     }
 
+    /**
+     * Gets mute state of microphone.
+     *
+     * @return true if muted, false if enabled
+     */
     public boolean isAudioMuted()
     {
         return micManager.isMuted();
     }
 
+    /**
+     * Gets video camera state
+     *
+     * @return true if disabled, false if enabled
+     */
     public boolean isVideoEnabled()
     {
         return videoEnabled;
     }
+
+
+    // Abstract methods
+
+    /**
+     * Basic auth developed to work with Wowza. No tested with other server
+     *
+     * @param user     auth.
+     * @param password auth.
+     */
+    public abstract void setAuthorization(String user, String password);
+
+    protected abstract void prepareAudioRtp(AudioQuality audioQuality);
+
+    protected abstract void startRtpStream();
+
+    protected abstract void startRtpStream(String url);
+
+    protected abstract void stopRtpStream();
+
+
+    protected abstract void sendAACData(ByteBuffer aacBuffer, MediaCodec.BufferInfo info);
+
+    protected abstract void sendH264Data(ByteBuffer h264Buffer, MediaCodec.BufferInfo info);
+
+    protected abstract void sendAVCInfo(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps);
 }

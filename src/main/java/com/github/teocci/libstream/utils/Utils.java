@@ -10,18 +10,18 @@ import android.os.Build;
 
 public class Utils
 {
-    public static boolean minAPI19()
+    public static boolean minAPI18()
     {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2;
     }
 
-    public static boolean minAPI21()
+    public static boolean minAPI19()
     {
-        return Build.VERSION.SDK_INT >= 21;
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
     }
 
-    public static boolean minAPI18()
+    public static boolean minAPI21()
     {
-        return Build.VERSION.SDK_INT >= 18;
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
     }
 }

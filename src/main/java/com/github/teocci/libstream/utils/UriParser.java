@@ -1,17 +1,5 @@
 package com.github.teocci.libstream.utils;
 
-import android.content.ContentValues;
-import android.hardware.Camera.CameraInfo;
-
-import com.github.teocci.libstream.protocols.rtsp.Session;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.UnknownHostException;
-import java.util.Set;
-
 //import static net.kseek.streaming.SessionBuilder.AUDIO_AAC;
 //import static net.kseek.streaming.SessionBuilder.AUDIO_NONE;
 //import static net.kseek.streaming.SessionBuilder.VIDEO_H263;

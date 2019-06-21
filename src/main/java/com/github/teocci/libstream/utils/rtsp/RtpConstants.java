@@ -16,4 +16,10 @@ public class RtpConstants
 
     // Used on all packets
     public final static int MAX_PACKET_SIZE = MTU - 28;
+
+
+    public final static int IPTOS_LOWCOST = 0x02;
+    public final static int IPTOS_RELIABILITY = 0x04;
+    public final static int IPTOS_THROUGHPUT = 0x08;
+    public final static int IPTOS_LOWDELAY = 0x10;
 }

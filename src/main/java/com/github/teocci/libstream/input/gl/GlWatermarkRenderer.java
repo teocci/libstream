@@ -10,6 +10,7 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.view.Surface;
 
+import com.github.teocci.libstream.enums.TranslateTo;
 import com.github.teocci.libstream.utils.gl.GlUtil;
 import com.github.teocci.libstream.R;
 import com.github.teocci.libstream.utils.gl.GifStreamObject;
@@ -257,9 +258,9 @@ public class GlWatermarkRenderer
         squareVertexWatermark.put(sprite.getTransformedVertices()).position(0);
     }
 
-    public void setPosition(Position positionTo)
+    public void setPosition(@TranslateTo int pos)
     {
-        sprite.translate(positionTo);
+        sprite.translate(pos);
         squareVertexWatermark.put(sprite.getTransformedVertices()).position(0);
     }
 

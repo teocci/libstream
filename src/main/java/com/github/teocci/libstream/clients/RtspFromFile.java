@@ -8,7 +8,7 @@ import com.github.teocci.libstream.base.FromFileBase;
 import com.github.teocci.libstream.enums.Protocol;
 import com.github.teocci.libstream.interfaces.ConnectCheckerRtsp;
 import com.github.teocci.libstream.interfaces.video.VideoDecoderListener;
-import com.github.teocci.libstream.protocols.rtsp.RtspClient;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.RtspClient;
 
 import java.nio.ByteBuffer;
 
@@ -51,11 +51,12 @@ public class RtspFromFile extends FromFileBase
     }
 
     @Override
-    protected void onSPSandPPSRtp(ByteBuffer sps, ByteBuffer pps)
+    protected void sendAVCInfo(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps)
     {
         ByteBuffer newSps = sps.duplicate();
         ByteBuffer newPps = pps.duplicate();
-        rtspClient.setSPSandPPS(newSps, newPps);
+        ByteBuffer newVps = vps != null ? vps.duplicate() : null;
+        rtspClient.setAVCInfo(newSps, newPps, newVps);
         rtspClient.connect();
     }
 

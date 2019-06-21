@@ -11,7 +11,7 @@ import com.github.teocci.libstream.input.video.VideoQuality;
 import java.util.List;
 
 /**
- * Created by teocci.
+ * Created by teocci. Active Implementation
  *
  * @author teocci@yandex.com on 2018-Feb-23
  */

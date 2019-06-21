@@ -17,18 +17,19 @@ import com.github.teocci.libstream.coder.encoder.audio.AudioEncoder;
 import com.github.teocci.libstream.coder.encoder.video.VideoEncoder;
 import com.github.teocci.libstream.input.audio.AudioQuality;
 import com.github.teocci.libstream.input.audio.MicManager;
+import com.github.teocci.libstream.input.video.Frame;
 import com.github.teocci.libstream.input.video.VideoQuality;
 import com.github.teocci.libstream.interfaces.audio.AACSinker;
-import com.github.teocci.libstream.interfaces.video.CameraSinker;
-import com.github.teocci.libstream.interfaces.video.H264Sinker;
 import com.github.teocci.libstream.interfaces.audio.MicSinker;
+import com.github.teocci.libstream.interfaces.video.CameraSinker;
+import com.github.teocci.libstream.interfaces.video.EncoderSinker;
 import com.github.teocci.libstream.utils.LogHelper;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static android.content.Context.MEDIA_PROJECTION_SERVICE;
-import static com.github.teocci.libstream.enums.VideoEncodingFormat.SURFACE;
+import static com.github.teocci.libstream.enums.FormatVideoEncoder.SURFACE;
 
 /**
  * Created by teocci.
@@ -36,7 +37,7 @@ import static com.github.teocci.libstream.enums.VideoEncodingFormat.SURFACE;
  * @author teocci@yandex.com on 2017-Jan-14
  */
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker, H264Sinker
+public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker, EncoderSinker
 {
     private static String TAG = LogHelper.makeLogTag(DisplayBase.class);
 
@@ -91,19 +92,25 @@ public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker,
     @Override
     public void onPSReady(Pair<ByteBuffer, ByteBuffer> psPair)
     {
-        onSPSandPPSRtp(psPair.first, psPair.second);
+        sendAVCInfo(psPair.first, psPair.second, null);
     }
 
     @Override
-    public void onH264Data(ByteBuffer h264Buffer, MediaCodec.BufferInfo info)
+    public void onSpsPpsVpsReady(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps)
+    {
+        sendAVCInfo(sps, pps, vps);
+    }
+
+    @Override
+    public void onEncodedData(ByteBuffer videoBuffer, MediaCodec.BufferInfo info)
     {
         if (recording) {
             if (info.flags == MediaCodec.BUFFER_FLAG_KEY_FRAME) canRecord = true;
             if (canRecord) {
-                mediaMuxer.writeSampleData(videoTrack, h264Buffer, info);
+                mediaMuxer.writeSampleData(videoTrack, videoBuffer, info);
             }
         }
-        getH264DataRtp(h264Buffer, info);
+        getH264DataRtp(videoBuffer, info);
     }
 
     @Override
@@ -116,6 +123,12 @@ public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker,
     public void onYUVData(byte[] buffer)
     {
         videoEncoder.onYUVData(buffer);
+    }
+
+    @Override
+    public void onYUVData(Frame frame)
+    {
+        videoEncoder.onYUVData(frame);
     }
 
     @Override
@@ -148,7 +161,7 @@ public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker,
 
         VideoQuality quality = new VideoQuality(width, height, fps, bitrate);
 
-        boolean result = videoEncoder.prepare(quality, rotation, hardwareRotation, SURFACE);
+        boolean result = videoEncoder.prepare(quality, hardwareRotation, rotation, SURFACE);
         return result;
     }
 
@@ -161,7 +174,7 @@ public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker,
 
     public boolean prepareVideo()
     {
-        return videoEncoder.prepare(VideoQuality.DEFAULT, 0, true, SURFACE);
+        return videoEncoder.prepare(VideoQuality.DEFAULT, true, 0, SURFACE);
     }
 
     public boolean prepareAudio()
@@ -258,11 +271,6 @@ public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker,
         }
     }
 
-    public boolean isStreaming()
-    {
-        return streaming;
-    }
-
     protected abstract void stopStreamRtp();
 
     protected abstract void startStreamRtp(String url);
@@ -271,9 +279,15 @@ public abstract class DisplayBase implements MicSinker, AACSinker, CameraSinker,
 
     protected abstract void getAacDataRtp(ByteBuffer aacBuffer, MediaCodec.BufferInfo info);
 
-    protected abstract void onSPSandPPSRtp(ByteBuffer sps, ByteBuffer pps);
+    protected abstract void sendAVCInfo(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps);
 
     protected abstract void getH264DataRtp(ByteBuffer h264Buffer, MediaCodec.BufferInfo info);
+
+
+    public boolean isStreaming()
+    {
+        return streaming;
+    }
 
     public boolean isAudioMuted()
     {

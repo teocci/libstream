@@ -16,15 +16,17 @@ import android.view.TextureView;
 
 import com.github.teocci.libstream.coder.encoder.audio.AudioEncoder;
 import com.github.teocci.libstream.coder.encoder.video.VideoEncoder;
+import com.github.teocci.libstream.enums.TranslateTo;
 import com.github.teocci.libstream.exceptions.CameraInUseException;
 import com.github.teocci.libstream.input.audio.AudioQuality;
 import com.github.teocci.libstream.input.audio.MicManager;
 import com.github.teocci.libstream.input.video.Camera2Manager;
+import com.github.teocci.libstream.input.video.Frame;
 import com.github.teocci.libstream.input.video.VideoQuality;
 import com.github.teocci.libstream.interfaces.audio.AACSinker;
 import com.github.teocci.libstream.enums.Camera2Facing;
 import com.github.teocci.libstream.interfaces.video.CameraSinker;
-import com.github.teocci.libstream.interfaces.video.H264Sinker;
+import com.github.teocci.libstream.interfaces.video.EncoderSinker;
 import com.github.teocci.libstream.interfaces.audio.MicSinker;
 import com.github.teocci.libstream.utils.LogHelper;
 import com.github.teocci.libstream.utils.gl.GifStreamObject;
@@ -36,7 +38,7 @@ import com.github.teocci.libstream.view.OpenGlView;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static com.github.teocci.libstream.enums.VideoEncodingFormat.SURFACE;
+import static com.github.teocci.libstream.enums.FormatVideoEncoder.SURFACE;
 
 /**
  * Created by teocci.
@@ -44,7 +46,7 @@ import static com.github.teocci.libstream.enums.VideoEncodingFormat.SURFACE;
  * @author teocci@yandex.com on 2017-Jan-14
  */
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-public abstract class Camera2Base implements MicSinker, AACSinker, CameraSinker, H264Sinker
+public abstract class Camera2Base implements MicSinker, AACSinker, CameraSinker, EncoderSinker
 {
     private static String TAG = LogHelper.makeLogTag(Camera2Base.class);
 
@@ -124,19 +126,26 @@ public abstract class Camera2Base implements MicSinker, AACSinker, CameraSinker,
     @Override
     public void onPSReady(Pair<ByteBuffer, ByteBuffer> psPair)
     {
-        onSPSandPPSRtp(psPair.first, psPair.second);
+        sendAVCInfo(psPair.first, psPair.second, null);
     }
 
     @Override
-    public void onH264Data(ByteBuffer h264Buffer, MediaCodec.BufferInfo info)
+    public void onSpsPpsVpsReady(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps)
+    {
+        sendAVCInfo(sps, pps, vps);
+    }
+
+
+    @Override
+    public void onEncodedData(ByteBuffer videoBuffer, MediaCodec.BufferInfo info)
     {
         if (recording && videoTrack != -1) {
             if (info.flags == MediaCodec.BUFFER_FLAG_KEY_FRAME) canRecord = true;
             if (canRecord) {
-                mediaMuxer.writeSampleData(videoTrack, h264Buffer, info);
+                mediaMuxer.writeSampleData(videoTrack, videoBuffer, info);
             }
         }
-        getH264DataRtp(h264Buffer, info);
+        getH264DataRtp(videoBuffer, info);
     }
 
     @Override
@@ -149,6 +158,12 @@ public abstract class Camera2Base implements MicSinker, AACSinker, CameraSinker,
     public void onYUVData(byte[] buffer)
     {
         videoEncoder.onYUVData(buffer);
+    }
+
+    @Override
+    public void onYUVData(Frame frame)
+    {
+        videoEncoder.onYUVData(frame);
     }
 
     @Override
@@ -171,7 +186,7 @@ public abstract class Camera2Base implements MicSinker, AACSinker, CameraSinker,
         }
         int imageFormat = ImageFormat.NV21; //supported nv21 and yv12
         videoEncoder.setImageFormat(imageFormat);
-        boolean result = videoEncoder.prepare(quality, rotation, hardwareRotation, SURFACE);
+        boolean result = videoEncoder.prepare(quality, hardwareRotation, rotation, SURFACE);
         prepareCameraManager();
         return result;
     }
@@ -190,7 +205,7 @@ public abstract class Camera2Base implements MicSinker, AACSinker, CameraSinker,
             onPreview = true;
         }
 
-        boolean result = videoEncoder.prepare(VideoQuality.DEFAULT, 0, true, SURFACE);
+        boolean result = videoEncoder.prepare(VideoQuality.DEFAULT, true, 0, SURFACE);
         prepareCameraManager();
         return result;
     }
@@ -420,7 +435,7 @@ public abstract class Camera2Base implements MicSinker, AACSinker, CameraSinker,
      * @param position pre determinate positions
      * @throws RuntimeException if is not an OpenGLView
      */
-    public void setPositionStreamObject(Position position) throws RuntimeException
+    public void setPositionStreamObject(@TranslateTo int position) throws RuntimeException
     {
         if (openGlView != null) {
             openGlView.setStreamObjectPosition(position);
@@ -491,7 +506,10 @@ public abstract class Camera2Base implements MicSinker, AACSinker, CameraSinker,
 
     protected abstract void getH264DataRtp(ByteBuffer h264Buffer, MediaCodec.BufferInfo info);
 
-    protected abstract void onSPSandPPSRtp(ByteBuffer sps, ByteBuffer pps);
+    protected abstract void sendAVCInfo(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps);
+
+
+
 
     public boolean isStreaming()
     {

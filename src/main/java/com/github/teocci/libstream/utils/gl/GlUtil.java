@@ -24,6 +24,16 @@ public class GlUtil
 {
     private static final String TAG = "GlUtil";
 
+    public static final int CENTER = 0,
+            LEFT = 1,
+            RIGHT = 2,
+            TOP = 3,
+            BOTTOM = 4,
+            TOP_LEFT = 5,
+            TOP_RIGHT = 6,
+            BOTTOM_LEFT = 7,
+            BOTTOM_RIGHT = 8;
+
     public static int loadShader(int shaderType, String source)
     {
         int shader = GLES20.glCreateShader(shaderType);

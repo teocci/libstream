@@ -10,25 +10,26 @@ public class PCMUtil
     /**
      * See https://stackoverflow.com/a/33255658/5372008
      */
-    public static byte[] mixPCM(byte[] pcm1, byte[] pcm2)
+    public static byte[] mixPCM(byte[] pcmA, byte[] pcmB)
     {
-        int len1 = pcm1.length;
-        int len2 = pcm2.length;
+        int lenA = pcmA.length;
+        int lenB = pcmB.length;
         byte[] pcmL;
         byte[] pcmS;
         int lenL; // Length of the longest
         int lenS; // Length of the shortest
-        if (len2 > len1) {
-            lenL = len1;
-            pcmL = pcm1;
-            lenS = len2;
-            pcmS = pcm2;
+        if (lenB > lenA) {
+            lenL = lenA;
+            pcmL = pcmA;
+            lenS = lenB;
+            pcmS = pcmB;
         } else {
-            lenL = len2;
-            pcmL = pcm2;
-            lenS = len1;
-            pcmS = pcm1;
+            lenL = lenB;
+            pcmL = pcmB;
+            lenS = lenA;
+            pcmS = pcmA;
         }
+
         for (int idx = 0; idx < lenL; idx++) {
             int sample;
             if (idx >= lenS) {
@@ -41,6 +42,7 @@ public class PCMUtil
             if (sample < -128) sample = -128;
             pcmL[idx] = (byte) sample;
         }
+
         return pcmL;
     }
 }

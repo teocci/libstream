@@ -9,16 +9,18 @@ import android.support.annotation.RequiresApi;
 import android.util.Pair;
 
 import com.github.teocci.libstream.coder.encoder.video.VideoEncoder;
+import com.github.teocci.libstream.input.video.Frame;
 import com.github.teocci.libstream.input.video.VideoQuality;
 import com.github.teocci.libstream.interfaces.video.CameraSinker;
-import com.github.teocci.libstream.interfaces.video.H264Sinker;
+import com.github.teocci.libstream.interfaces.video.EncoderSinker;
 import com.github.teocci.libstream.interfaces.video.VideoDecoderListener;
 import com.github.teocci.libstream.utils.LogHelper;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static com.github.teocci.libstream.enums.VideoEncodingFormat.SURFACE;
+import static com.github.teocci.libstream.enums.FormatVideoEncoder.SURFACE;
+import static com.github.teocci.libstream.utils.Utils.minAPI19;
 
 /**
  * Created by teocci.
@@ -26,7 +28,7 @@ import static com.github.teocci.libstream.enums.VideoEncodingFormat.SURFACE;
  * @author teocci@yandex.com on 2017-Jan-14
  */
 @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-public abstract class FromFileBase implements CameraSinker, H264Sinker
+public abstract class FromFileBase implements CameraSinker, EncoderSinker
 {
     private static String TAG = LogHelper.makeLogTag(Camera2Base.class);
 
@@ -55,25 +57,37 @@ public abstract class FromFileBase implements CameraSinker, H264Sinker
     @Override
     public void onPSReady(Pair<ByteBuffer, ByteBuffer> psPair)
     {
-        onSPSandPPSRtp(psPair.first, psPair.second);
+        sendAVCInfo(psPair.first, psPair.second, null);
     }
 
     @Override
-    public void onH264Data(ByteBuffer h264Buffer, MediaCodec.BufferInfo info)
+    public void onSpsPpsVpsReady(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps)
+    {
+        sendAVCInfo(sps, pps, vps);
+    }
+
+    @Override
+    public void onEncodedData(ByteBuffer videoBuffer, MediaCodec.BufferInfo info)
     {
         if (recording) {
             if (info.flags == MediaCodec.BUFFER_FLAG_KEY_FRAME) canRecord = true;
             if (canRecord) {
-                mediaMuxer.writeSampleData(videoTrack, h264Buffer, info);
+                mediaMuxer.writeSampleData(videoTrack, videoBuffer, info);
             }
         }
-        getH264DataRtp(h264Buffer, info);
+        getH264DataRtp(videoBuffer, info);
     }
 
     @Override
     public void onYUVData(byte[] buffer)
     {
         videoEncoder.onYUVData(buffer);
+    }
+
+    @Override
+    public void onYUVData(Frame frame)
+    {
+        videoEncoder.onYUVData(frame);
     }
 
     @Override
@@ -91,7 +105,7 @@ public abstract class FromFileBase implements CameraSinker, H264Sinker
         mediaPlayer.setVolume(0, 0);
         //if (!videoDecoder.initExtractor(filePath)) return false;
         VideoQuality quality = new VideoQuality(mediaPlayer.getVideoWidth(), mediaPlayer.getVideoHeight(), 30, bitRate);
-        boolean result = videoEncoder.prepare(quality, 0, true, SURFACE);
+        boolean result = videoEncoder.prepare(quality, true, 0, SURFACE);
         mediaPlayer.setSurface(videoEncoder.getInputSurface());
         //videoDecoder.prepareVideo(videoEncoder.getInputSurface());
         return result;
@@ -121,8 +135,6 @@ public abstract class FromFileBase implements CameraSinker, H264Sinker
         videoTrack = -1;
     }
 
-    protected abstract void startStreamRtp(String url);
-
     public void startStream(String url)
     {
         startStreamRtp(url);
@@ -131,8 +143,6 @@ public abstract class FromFileBase implements CameraSinker, H264Sinker
         mediaPlayer.start();
         streaming = true;
     }
-
-    protected abstract void stopStreamRtp();
 
     public void stopStream()
     {
@@ -165,19 +175,21 @@ public abstract class FromFileBase implements CameraSinker, H264Sinker
         videoEnabled = true;
     }
 
-    public boolean isVideoEnabled()
-    {
-        return videoEnabled;
-    }
-
     /**
      * need min API 19
      */
     public void setVideoBitrateOnFly(int bitrate)
     {
-        if (Build.VERSION.SDK_INT >= 19) {
+        if (minAPI19()) {
             videoEncoder.setVideoBitrateOnFly(bitrate);
         }
+    }
+
+
+
+    public boolean isVideoEnabled()
+    {
+        return videoEnabled;
     }
 
     public boolean isStreaming()
@@ -185,9 +197,16 @@ public abstract class FromFileBase implements CameraSinker, H264Sinker
         return streaming;
     }
 
+
+    // Abstract Methods
+
     public abstract void setAuthorization(String user, String password);
 
-    protected abstract void onSPSandPPSRtp(ByteBuffer sps, ByteBuffer pps);
+    protected abstract void startStreamRtp(String url);
+
+    protected abstract void stopStreamRtp();
+
+    protected abstract void sendAVCInfo(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps);
 
     protected abstract void getH264DataRtp(ByteBuffer h264Buffer, MediaCodec.BufferInfo info);
 }

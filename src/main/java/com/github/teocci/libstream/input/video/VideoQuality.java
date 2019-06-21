@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * A class that represents the currentQuality of a video stream.
+ * A class that represents the quality of a video stream.
  * It contains the resolution, the fps (in fps) and the bitrate (in bps) of the stream.
  * <p>
  * Created by teocci.
@@ -21,7 +21,7 @@ public class VideoQuality
     private final static String TAG = LogHelper.makeLogTag(VideoQuality.class);
 
     /**
-     * Default video stream currentQuality.
+     * Default video stream quality.
      */
     public final static VideoQuality DEFAULT = new VideoQuality(720, 480, 30, 1200 * 1024);
 
@@ -31,15 +31,15 @@ public class VideoQuality
     public int height = 0;
 
     /**
-     * Represents a currentQuality for a video stream.
+     * Creates an undefined quality for a video stream.
      */
     public VideoQuality() {}
 
     /**
-     * Represents a currentQuality for a video stream.
+     * Creates a quality instance base on a vertical and horizontal resolution for a video stream.
      *
-     * @param width  The horizontal resolution
-     * @param height The vertical resolution
+     * @param width  The horizontal resolution in px.
+     * @param height The vertical resolution in px.
      */
     public VideoQuality(int width, int height)
     {
@@ -48,12 +48,12 @@ public class VideoQuality
     }
 
     /**
-     * Represents a currentQuality for a video stream.
+     * Creates a quality instance base on a vertical and horizontal resolution, fps, and bitrate for a video stream.
      *
-     * @param width  The horizontal resolution
-     * @param height The vertical resolution
-     * @param fps The fps in frame per seconds
-     * @param bitrate   The bitrate in bit per seconds
+     * @param width   The horizontal resolution in px.
+     * @param height  The vertical resolution in px.
+     * @param fps     The fps in frames per second of the stream.
+     * @param bitrate The bitrate in bit per seconds
      */
     public VideoQuality(int width, int height, int fps, int bitrate)
     {
@@ -101,7 +101,7 @@ public class VideoQuality
     /**
      * Checks if the requested resolution is supported by the camera.
      * If not, it modifies it by supported parameters.
-     **/
+     */
     public static VideoQuality closestSupportedResolution(Camera.Parameters parameters, VideoQuality quality)
     {
         VideoQuality v = quality.clone();

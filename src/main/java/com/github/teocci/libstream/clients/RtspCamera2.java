@@ -11,7 +11,7 @@ import com.github.teocci.libstream.base.Camera2Base;
 import com.github.teocci.libstream.enums.Protocol;
 import com.github.teocci.libstream.input.audio.AudioQuality;
 import com.github.teocci.libstream.interfaces.ConnectCheckerRtsp;
-import com.github.teocci.libstream.protocols.rtsp.RtspClient;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.RtspClient;
 import com.github.teocci.libstream.view.OpenGlView;
 
 import java.nio.ByteBuffer;
@@ -87,11 +87,12 @@ public class RtspCamera2 extends Camera2Base
     }
 
     @Override
-    protected void onSPSandPPSRtp(ByteBuffer sps, ByteBuffer pps)
+    protected void sendAVCInfo(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps)
     {
         ByteBuffer newSps = sps.duplicate();
         ByteBuffer newPps = pps.duplicate();
-        rtspClient.setSPSandPPS(newSps, newPps);
+        ByteBuffer newVps = vps != null ? vps.duplicate() : null;
+        rtspClient.setAVCInfo(newSps, newPps, newVps);
         rtspClient.connect();
     }
 

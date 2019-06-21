@@ -1,6 +1,6 @@
 package com.github.teocci.libstream.interfaces;
 
-import com.github.teocci.libstream.protocols.rtsp.RtspServerBase;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.RtspServerBase;
 
 /**
  * Be careful: those callbacks won't necessarily be called from the ui thread !

@@ -11,6 +11,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import com.github.teocci.libstream.enums.TranslateTo;
 import com.github.teocci.libstream.input.gl.GlWatermarkRenderer;
 import com.github.teocci.libstream.input.gl.SurfaceManager;
 import com.github.teocci.libstream.utils.LogHelper;
@@ -28,8 +29,7 @@ import java.util.concurrent.Semaphore;
  */
 
 @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-public class OpenGlView extends SurfaceView implements
-        Runnable, OnFrameAvailableListener, SurfaceHolder.Callback
+public class OpenGlView extends SurfaceView implements Runnable, OnFrameAvailableListener, SurfaceHolder.Callback
 {
     private static String TAG = LogHelper.makeLogTag(OpenGlView.class);
 
@@ -60,7 +60,7 @@ public class OpenGlView extends SurfaceView implements
     private float scaleX, scaleY;
     private float positionX, positionY;
 
-    private Position positionTo;
+    private @TranslateTo int positionTo;
     private Surface surface;
 
     private boolean frameAvailable = false;
@@ -159,7 +159,7 @@ public class OpenGlView extends SurfaceView implements
         loadPosition = true;
     }
 
-    public void setStreamObjectPosition(Position translateTo)
+    public void setStreamObjectPosition(@TranslateTo int translateTo)
     {
         this.positionTo = translateTo;
         loadPositionTo = true;

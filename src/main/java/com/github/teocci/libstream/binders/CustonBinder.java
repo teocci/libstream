@@ -2,7 +2,7 @@ package com.github.teocci.libstream.binders;
 
 import android.os.Binder;
 
-import com.github.teocci.libstream.protocols.rtsp.RtspServerBase;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.RtspServerBase;
 
 
 /**

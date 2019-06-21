@@ -31,13 +31,6 @@ public class ImageStreamObject extends StreamObjectBase
         return imageBitmap.getHeight();
     }
 
-    public void load(Bitmap imageBitmap) throws IOException
-    {
-        this.imageBitmap = imageBitmap;
-        numFrames = 1;
-        Log.i(TAG, "finish load image");
-    }
-
     @Override
     public void resize(int width, int height)
     {
@@ -65,5 +58,12 @@ public class ImageStreamObject extends StreamObjectBase
     public int updateFrame()
     {
         return 0;
+    }
+
+    public void load(Bitmap imageBitmap)
+    {
+        this.imageBitmap = imageBitmap;
+        numFrames = 1;
+        Log.i(TAG, "finish load image");
     }
 }

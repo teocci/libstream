@@ -16,6 +16,11 @@ public class AudioSink
         this.size = size;
     }
 
+    public void setSize(int size)
+    {
+        this.size = size;
+    }
+
     public byte[] getPCMBuffer()
     {
         return pcmBuffer;
@@ -29,10 +34,5 @@ public class AudioSink
     public int getSize()
     {
         return size;
-    }
-
-    public void setSize(int size)
-    {
-        this.size = size;
     }
 }

@@ -2,10 +2,10 @@ package com.github.teocci.libstream.threads;
 
 import android.util.Base64;
 
-import com.github.teocci.libstream.protocols.rtp.packets.AacPacket;
-import com.github.teocci.libstream.protocols.rtp.packets.H264Packet;
-import com.github.teocci.libstream.protocols.rtsp.RtspServerBase;
-import com.github.teocci.libstream.protocols.rtsp.Session;
+import com.github.teocci.libstream.protocols.rtsp.rtp.packets.AacPacket;
+import com.github.teocci.libstream.protocols.rtsp.rtp.packets.H264Packet;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.RtspServerBase;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.Session;
 import com.github.teocci.libstream.utils.LogHelper;
 
 import java.io.BufferedReader;
@@ -26,7 +26,7 @@ import static com.github.teocci.libstream.threads.Response.STATUS_INTERNAL_SERVE
 import static com.github.teocci.libstream.utils.Config.SERVER_NAME;
 
 /**
- * One thread per client
+ * One thread per socket
  * <p>
  * Created by teocci.
  *
@@ -58,12 +58,12 @@ public class WorkerThread extends Thread implements Runnable
     public final static int MESSAGE_STREAMING_STOPPED = 0X01;
 
     private final RtspServerBase rtspServer;
-    private final Socket client;
+    private final Socket socket;
 
     private final OutputStream outputStream;
     private final BufferedReader inputStream;
 
-    // Each client has an associated session
+    // Each socket has an associated session
     private Session session;
 
     /**
@@ -72,17 +72,17 @@ public class WorkerThread extends Thread implements Runnable
     private String username;
     private String password;
 
-    public WorkerThread(RtspServerBase rtspServer, final Socket client) throws IOException
+    public WorkerThread(RtspServerBase rtspServer, final Socket socket) throws Exception
     {
         this.rtspServer = rtspServer;
-        this.client = client;
+        this.socket = socket;
 
-        this.outputStream = client.getOutputStream();
-        this.inputStream = new BufferedReader(new InputStreamReader(client.getInputStream()));
+        this.outputStream = socket.getOutputStream();
+        this.inputStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.session = new Session();
         this.session.setProtocol(rtspServer.getProtocol());
         this.session.setConnectCheckerRtsp(rtspServer.getConnectCheckerRtsp());
-        this.session.setOutputStream(client.getOutputStream());
+        this.session.setOutputStream(socket.getOutputStream());
         this.session.setSampleRate(rtspServer.getSampleRate());
         this.session.setChannel(rtspServer.getChannel());
         this.session.setPSPair(rtspServer.sps, rtspServer.pps);
@@ -97,17 +97,15 @@ public class WorkerThread extends Thread implements Runnable
         Request request;
         Response response;
 
-        boolean isTCP = session.isTCP();
-
-        session.h264Packet = new H264Packet(session, isTCP);
+        session.h264Packet = new H264Packet(session);
         if (session.sps != null && session.pps != null) {
             session.h264Packet.setPSPair(session.sps, session.pps);
         }
 
-        session.aacPacket = new AacPacket(session, isTCP);
+        session.aacPacket = new AacPacket(session);
         session.aacPacket.setSampleRate(session.getSampleRate());
 
-        LogHelper.i(TAG, "Connection from " + client.getInetAddress().getHostAddress());
+        LogHelper.i(TAG, "Connection from " + socket.getInetAddress().getHostAddress());
 
         while (!Thread.interrupted()) {
             request = null;
@@ -139,7 +137,7 @@ public class WorkerThread extends Thread implements Runnable
             }
 
             // We always send a response
-            // The client will receive an "INTERNAL SERVER ERROR" if an exception has been thrown at some point
+            // The socket will receive an "INTERNAL SERVER ERROR" if an exception has been thrown at some point
             try {
                 if (response != null) {
                     response.send(outputStream);
@@ -150,7 +148,7 @@ public class WorkerThread extends Thread implements Runnable
             }
         }
 
-        // Streaming stops when client disconnects
+        // Streaming stops when socket disconnects
         boolean streaming = rtspServer.isStreaming();
         session.syncStop();
         if (streaming && !rtspServer.isStreaming()) {
@@ -159,7 +157,7 @@ public class WorkerThread extends Thread implements Runnable
         session.release();
 
         try {
-            client.close();
+            socket.close();
         } catch (IOException ignore) {}
 
         rtspServer.streaming = false;
@@ -184,12 +182,12 @@ public class WorkerThread extends Thread implements Runnable
             switch (request.method) {
                 case DESCRIBE:
                     // Configure the session
-                    session.setOrigin(client.getLocalAddress().getHostAddress());
+                    session.setOrigin(socket.getLocalAddress().getHostAddress());
                     if (session.getDestination() == null) {
-                        session.setDestination(client.getInetAddress().getHostAddress());
+                        session.setDestination(socket.getInetAddress().getHostAddress());
                     }
 
-//                    session = rtspServer.handleRequest(request.uri, client);
+//                    session = rtspServer.handleRequest(request.uri, socket);
                     rtspServer.sessions.put(session, null);
 //                    session.syncConfigure();
                     requestAttributes = "Content-Base: " + getHost() + "/\r\n" +
@@ -264,6 +262,7 @@ public class WorkerThread extends Thread implements Runnable
                     session.updateDestination();
 
                     rtspServer.streaming = true;
+                    rtspServer.postMessage(MESSAGE_STREAMING_STARTED);
 
 //                    boolean streaming = rtspServer.isStreaming();
 //                    session.syncStart(trackId);
@@ -324,8 +323,8 @@ public class WorkerThread extends Thread implements Runnable
 
     private String getHost()
     {
-        if (client == null) return "";
-        return client.getLocalAddress().getHostAddress() + ":" + client.getLocalPort();
+        if (socket == null) return "";
+        return socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort();
     }
 
     /**
@@ -356,8 +355,7 @@ public class WorkerThread extends Thread implements Runnable
             String received = auth.substring(auth.lastIndexOf(" ") + 1);
             String local = username + ":" + password;
             String localEncoded = Base64.encodeToString(local.getBytes(), Base64.NO_WRAP);
-            if (localEncoded.equals(received))
-                return true;
+            return localEncoded.equals(received);
         }
 
         return false;

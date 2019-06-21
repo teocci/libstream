@@ -10,7 +10,7 @@ import com.github.teocci.libstream.base.AVEncoderBase;
 import com.github.teocci.libstream.enums.Protocol;
 import com.github.teocci.libstream.input.audio.AudioQuality;
 import com.github.teocci.libstream.interfaces.ConnectCheckerRtsp;
-import com.github.teocci.libstream.protocols.rtsp.RtspClient;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.RtspClient;
 import com.github.teocci.libstream.utils.LogHelper;
 import com.github.teocci.libstream.view.OpenGlView;
 
@@ -60,7 +60,7 @@ public class RtspAVEncoder extends AVEncoderBase
     }
 
     @Override
-    protected void startRtspStream()
+    protected void startRtpStream()
     {
         if (!camManager.isPrepared()) {
             rtspClient.connect();
@@ -68,7 +68,7 @@ public class RtspAVEncoder extends AVEncoderBase
     }
 
     @Override
-    protected void startRtspStream(String url)
+    protected void startRtpStream(String url)
     {
         rtspClient.setUrl(url);
         if (!camManager.isPrepared()) {
@@ -77,17 +77,18 @@ public class RtspAVEncoder extends AVEncoderBase
     }
 
     @Override
-    protected void stopRtspStream()
+    protected void stopRtpStream()
     {
         rtspClient.disconnect();
     }
 
     @Override
-    protected void setPSPair(ByteBuffer sps, ByteBuffer pps)
+    protected void sendAVCInfo(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps)
     {
         ByteBuffer newSps = sps.duplicate();
         ByteBuffer newPps = pps.duplicate();
-        rtspClient.setSPSandPPS(newSps, newPps);
+        ByteBuffer newVps = vps != null ? vps.duplicate() : null;
+        rtspClient.setAVCInfo(newSps, newPps, newVps);
         rtspClient.connect();
     }
 

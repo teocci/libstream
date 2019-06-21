@@ -75,6 +75,23 @@ public class GifStreamObject extends StreamObjectBase
     }
 
     @Override
+    public int updateFrame()
+    {
+        if (startDelayFrame == 0) {
+            startDelayFrame = System.currentTimeMillis();
+        }
+        if (System.currentTimeMillis() - startDelayFrame >= gifDelayFrames[currentGifFrame]) {
+            if (currentGifFrame >= numFrames - 1) {
+                currentGifFrame = 0;
+            } else {
+                currentGifFrame++;
+            }
+            startDelayFrame = 0;
+        }
+        return currentGifFrame;
+    }
+
+    @Override
     public int getNumFrames()
     {
         return numFrames;
@@ -90,20 +107,8 @@ public class GifStreamObject extends StreamObjectBase
         return gifBitmaps;
     }
 
-    @Override
-    public int updateFrame()
+    public int updateFrame(int size)
     {
-        if (startDelayFrame == 0) {
-            startDelayFrame = System.currentTimeMillis();
-        }
-        if (System.currentTimeMillis() - startDelayFrame >= gifDelayFrames[currentGifFrame]) {
-            if (currentGifFrame >= numFrames - 1) {
-                currentGifFrame = 0;
-            } else {
-                currentGifFrame++;
-            }
-            startDelayFrame = 0;
-        }
-        return currentGifFrame;
+        return size <= 1 ? 0 : updateFrame();
     }
 }

@@ -3,14 +3,24 @@ package com.github.teocci.libstream.input.gl;
 import android.graphics.PointF;
 import android.graphics.RectF;
 
-import com.github.teocci.libstream.utils.gl.Position;
+import com.github.teocci.libstream.enums.TranslateTo;
+
+import static com.github.teocci.libstream.utils.gl.GlUtil.BOTTOM;
+import static com.github.teocci.libstream.utils.gl.GlUtil.BOTTOM_LEFT;
+import static com.github.teocci.libstream.utils.gl.GlUtil.BOTTOM_RIGHT;
+import static com.github.teocci.libstream.utils.gl.GlUtil.CENTER;
+import static com.github.teocci.libstream.utils.gl.GlUtil.LEFT;
+import static com.github.teocci.libstream.utils.gl.GlUtil.RIGHT;
+import static com.github.teocci.libstream.utils.gl.GlUtil.TOP;
+import static com.github.teocci.libstream.utils.gl.GlUtil.TOP_LEFT;
+import static com.github.teocci.libstream.utils.gl.GlUtil.TOP_RIGHT;
 
 /**
  * Created by teocci.
  *
  * @author teocci@yandex.com on 2017-Jan-14
  */
-class Sprite
+public class Sprite
 {
     private float angle;
     private RectF base;
@@ -30,7 +40,7 @@ class Sprite
         translation.y = -rangeY / (100 / deltaX);
     }
 
-    public void translate(Position translation)
+    public void translate(@TranslateTo int translation)
     {
         switch (translation) {
             case CENTER:

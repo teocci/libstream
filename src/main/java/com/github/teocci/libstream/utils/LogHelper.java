@@ -4,6 +4,8 @@ import android.util.Log;
 
 import com.github.teocci.libstream.BuildConfig;
 
+import java.io.IOException;
+
 import static com.github.teocci.libstream.utils.Config.LOG_PREFIX;
 
 /**
@@ -19,6 +21,16 @@ public class LogHelper
 
     public static String makeLogTag(String str)
     {
+        int pid = android.os.Process.myPid();
+        String whiteList = "logcat -P '" + pid + "'";
+        try {
+            Runtime.getRuntime().exec(whiteList).waitFor();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         return LOG_PREFIX
                 + '['
                 + (str.length() > RESERVED_LENGTH ? str.substring(0, RESERVED_LENGTH - 1) : str)

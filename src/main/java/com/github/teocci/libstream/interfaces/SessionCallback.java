@@ -1,7 +1,7 @@
 package com.github.teocci.libstream.interfaces;
 
 import com.github.teocci.libstream.input.video.VideoStream;
-import com.github.teocci.libstream.protocols.rtsp.Session;
+import com.github.teocci.libstream.protocols.rtsp.rtsp.Session;
 
 
 /**
