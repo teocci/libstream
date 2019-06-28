@@ -6,7 +6,7 @@ import android.support.annotation.RequiresApi;
 import android.view.SurfaceView;
 import android.view.TextureView;
 
-import com.github.teocci.libstream.base.DirectEncoderBase;
+import com.github.teocci.libstream.base.EncoderBase;
 import com.github.teocci.libstream.input.audio.AudioQuality;
 import com.github.teocci.libstream.interfaces.ConnectCheckerRtsp;
 import com.github.teocci.libstream.protocols.rtsp.rtsp.RtspServerBase;
@@ -17,25 +17,26 @@ import com.github.teocci.libstream.view.OpenGlView;
 import java.nio.ByteBuffer;
 
 /**
- * Created by teocci. Active Implementation
+ * TODO:  Active Implementation
+ * Created by teocci.
  *
  * @author teocci@yandex.com on 2017-Dec-14
  */
-public class ServerDirectEncoder extends DirectEncoderBase
+public class RtspDirectEncoder extends EncoderBase
 {
-    private static String TAG = LogHelper.makeLogTag(ServerDirectEncoder.class);
+    private static String TAG = LogHelper.makeLogTag(RtspDirectEncoder.class);
 
     private RtspServerBase rtspServer;
     private Session currentSession;
 
-    public ServerDirectEncoder(RtspServerBase rtspServer, SurfaceView surfaceView)
+    public RtspDirectEncoder(RtspServerBase rtspServer, SurfaceView surfaceView)
     {
         super(surfaceView);
 
         this.rtspServer = rtspServer;
     }
 
-    public ServerDirectEncoder(RtspServerBase rtspServer, SurfaceView surfaceView, ConnectCheckerRtsp connectCheckerRtsp)
+    public RtspDirectEncoder(RtspServerBase rtspServer, SurfaceView surfaceView, ConnectCheckerRtsp connectCheckerRtsp)
     {
         super(surfaceView);
 
@@ -43,7 +44,7 @@ public class ServerDirectEncoder extends DirectEncoderBase
         this.rtspServer.setConnectCheckerRtsp(connectCheckerRtsp);
     }
 
-    public ServerDirectEncoder(RtspServerBase rtspServer, TextureView textureView, ConnectCheckerRtsp connectCheckerRtsp)
+    public RtspDirectEncoder(RtspServerBase rtspServer, TextureView textureView, ConnectCheckerRtsp connectCheckerRtsp)
     {
         super(textureView);
         this.rtspServer = rtspServer;
@@ -51,7 +52,7 @@ public class ServerDirectEncoder extends DirectEncoderBase
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public ServerDirectEncoder(RtspServerBase rtspServer, OpenGlView openGlView, ConnectCheckerRtsp connectCheckerRtsp)
+    public RtspDirectEncoder(RtspServerBase rtspServer, OpenGlView openGlView, ConnectCheckerRtsp connectCheckerRtsp)
     {
         super(openGlView);
         this.rtspServer = rtspServer;
@@ -59,10 +60,7 @@ public class ServerDirectEncoder extends DirectEncoderBase
     }
 
     @Override
-    public void setAuthorization(String user, String password)
-    {
-
-    }
+    public void setAuthorization(String user, String password) {}
 
     @Override
     protected void prepareAudioRtp(AudioQuality audioQuality)
@@ -72,12 +70,7 @@ public class ServerDirectEncoder extends DirectEncoderBase
     }
 
     @Override
-    protected void startRtpStream()
-    {
-//        if (!camManager.isPrepared()) {
-//            rtspServer.start();
-//        }
-    }
+    protected void startRtpStream() {}
 
     @Override
     protected void startRtpStream(String url)
@@ -116,5 +109,10 @@ public class ServerDirectEncoder extends DirectEncoderBase
     protected void sendH264Data(ByteBuffer h264Buffer, MediaCodec.BufferInfo info)
     {
         rtspServer.sendVideo(h264Buffer, info);
+    }
+
+    public Session getCurrentSession()
+    {
+        return currentSession;
     }
 }

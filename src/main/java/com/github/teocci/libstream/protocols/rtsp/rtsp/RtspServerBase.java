@@ -70,7 +70,7 @@ public abstract class RtspServerBase extends Service
 
     private final LinkedList<RtspCallback> listeners = new LinkedList<>();
 
-    private RequestWorker listenerThread;
+    private RequestWorker requestWorker;
 //    private final IBinder binder;
 
     public Session currentSession;
@@ -143,6 +143,7 @@ public abstract class RtspServerBase extends Service
                     if (cl == listener) return;
                 }
             }
+
             listeners.add(listener);
         }
     }
@@ -188,12 +189,12 @@ public abstract class RtspServerBase extends Service
     {
         LogHelper.e(TAG, "start()");
         if (!enabled || restart) stop();
-        if (enabled && listenerThread == null) {
+        if (enabled && requestWorker == null) {
             try {
-                listenerThread = new RequestWorker(this, rtspPort);
+                requestWorker = new RequestWorker(this, rtspPort);
                 LogHelper.e(TAG, "RequestWorker() called");
             } catch (Exception e) {
-                listenerThread = null;
+                requestWorker = null;
                 postMessage(MESSAGE_STREAMING_STOPPED);
             }
         }
@@ -206,17 +207,17 @@ public abstract class RtspServerBase extends Service
      */
     public void stop()
     {
-        if (listenerThread != null) {
+        if (requestWorker != null) {
             try {
-                listenerThread.kill();
+                requestWorker.kill();
                 for (Session session : sessions.keySet()) {
                     if (session != null && session.isStreaming()) {
                         session.stop();
                     }
                 }
-            } catch (Exception e) {
+            } catch (Exception ignore) {
             } finally {
-                listenerThread = null;
+                requestWorker = null;
                 postMessage(MESSAGE_STREAMING_STOPPED);
             }
         }

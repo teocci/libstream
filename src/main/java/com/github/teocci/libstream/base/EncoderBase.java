@@ -2,7 +2,6 @@ package com.github.teocci.libstream.base;
 
 import android.content.Context;
 import android.graphics.ImageFormat;
-import android.graphics.PointF;
 import android.hardware.Camera;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
@@ -31,10 +30,6 @@ import com.github.teocci.libstream.interfaces.audio.MicSinker;
 import com.github.teocci.libstream.interfaces.video.CameraSinker;
 import com.github.teocci.libstream.interfaces.video.EncoderSinker;
 import com.github.teocci.libstream.utils.LogHelper;
-import com.github.teocci.libstream.utils.gl.GifStreamObject;
-import com.github.teocci.libstream.utils.gl.ImageStreamObject;
-import com.github.teocci.libstream.utils.gl.Position;
-import com.github.teocci.libstream.utils.gl.TextStreamObject;
 import com.github.teocci.libstream.view.OpenGlView;
 
 import java.io.IOException;
@@ -48,8 +43,8 @@ import static com.github.teocci.libstream.enums.FormatVideoEncoder.SURFACE;
 import static com.github.teocci.libstream.enums.FormatVideoEncoder.YUV420DYNAMICAL;
 import static com.github.teocci.libstream.utils.CameraHelper.getCameraOrientation;
 import static com.github.teocci.libstream.utils.CodecUtil.IFRAME_INTERVAL;
-import static com.github.teocci.libstream.utils.Utils.minAPI18;
-import static com.github.teocci.libstream.utils.Utils.minAPI19;
+import static com.github.teocci.libstream.utils.BuildUtil.minAPI18;
+import static com.github.teocci.libstream.utils.BuildUtil.minAPI19;
 
 /**
  * Created by teocci.

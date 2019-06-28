@@ -8,7 +8,7 @@ import android.os.Build;
  * @author teocci@yandex.com on 2018-Jan-16
  */
 
-public class Utils
+public class BuildUtil
 {
     public static boolean minAPI18()
     {
@@ -23,5 +23,15 @@ public class Utils
     public static boolean minAPI21()
     {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+    }
+
+    public static boolean minAPI23()
+    {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+    }
+
+    public static boolean minAPI26()
+    {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
     }
 }

@@ -16,7 +16,7 @@ import static com.github.teocci.libstream.enums.FormatVideoEncoder.SURFACE;
 import static com.github.teocci.libstream.enums.FormatVideoEncoder.YUV420PACKEDPLANAR;
 import static com.github.teocci.libstream.enums.FormatVideoEncoder.YUV420PLANAR;
 import static com.github.teocci.libstream.enums.FormatVideoEncoder.YUV420SEMIPLANAR;
-import static com.github.teocci.libstream.utils.Utils.minAPI21;
+import static com.github.teocci.libstream.utils.BuildUtil.minAPI21;
 
 /**
  * Created by teocci.

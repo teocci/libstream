@@ -20,7 +20,7 @@ import static android.media.MediaFormat.KEY_AAC_PROFILE;
 import static android.media.MediaFormat.KEY_BIT_RATE;
 import static android.media.MediaFormat.KEY_MAX_INPUT_SIZE;
 import static com.github.teocci.libstream.utils.CodecUtil.MAX_INPUT_SIZE;
-import static com.github.teocci.libstream.utils.Utils.minAPI21;
+import static com.github.teocci.libstream.utils.BuildUtil.minAPI21;
 import static com.github.teocci.libstream.utils.rtsp.RtpConstants.PAYLOAD_TYPE;
 
 /**

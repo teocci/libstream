@@ -4,8 +4,10 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.util.Base64;
+import android.view.SurfaceView;
 
 import com.github.teocci.libstream.BuildConfig;
+import com.github.teocci.libstream.clients.RtspDirectEncoder;
 import com.github.teocci.libstream.coder.encoder.audio.AudioEncoder;
 import com.github.teocci.libstream.coder.encoder.video.VideoEncoder;
 import com.github.teocci.libstream.enums.Protocol;
@@ -147,7 +149,7 @@ public class Session
      */
     public Session()
     {
-        long uptime = System.currentTimeMillis();
+        long uptime = System.nanoTime() / 1000;
 
         HandlerThread thread = new HandlerThread(THREAD_NAME);
         thread.start();

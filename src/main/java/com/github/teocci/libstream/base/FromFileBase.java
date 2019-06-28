@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static com.github.teocci.libstream.enums.FormatVideoEncoder.SURFACE;
-import static com.github.teocci.libstream.utils.Utils.minAPI19;
+import static com.github.teocci.libstream.utils.BuildUtil.minAPI19;
 
 /**
  * Created by teocci.

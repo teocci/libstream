@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static com.github.teocci.libstream.utils.rtsp.RtpConstants.MAX_PACKET_SIZE;
+import static com.github.teocci.libstream.utils.rtsp.RtpConstants.MIN_RTP_PACKET_LENGTH;
 import static com.github.teocci.libstream.utils.rtsp.RtpConstants.RTP_HEADER_LENGTH;
 
 /**
@@ -68,9 +69,8 @@ public class AacPacket extends BasePacket
         boolean interrupted = false;
         try {
             buffer = socket.requestBuffer();
-            int length = MAX_PACKET_SIZE - (RTP_HEADER_LENGTH + 4) <= bufferInfo.size - byteBuffer.position() ?
-                    MAX_PACKET_SIZE - (RTP_HEADER_LENGTH + 4) :
-                    bufferInfo.size - byteBuffer.position();
+            int length = bufferInfo.size - byteBuffer.position();
+            length = MIN_RTP_PACKET_LENGTH <= length ? MIN_RTP_PACKET_LENGTH : length;
             if (length > 0) {
                 byteBuffer.get(buffer, RTP_HEADER_LENGTH + 4, length);
                 oldTs = ts;

@@ -112,7 +112,7 @@ public abstract class BaseRtpSocket implements Runnable
      **/
     public void updateTimestamp(long timestamp)
     {
-        long ts = timestamp * clock / 1000000000L;
+        long ts = timestamp * clock / 1_000_000_000L;
         timestamps[bufferIn] = ts;
 
         // Byte 4,5,6,7 -> Timestamp
